@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Case 003 // Roanoke Colony | Bonded in Mystery</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#040404;
+  --line:rgba(255,255,255,.08);
+  --cyan:#00e5ff;
+  --gold:#ffc857;
+  --text:#f5f5f5;
+  --muted:#9ca3af;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  overflow-x:hidden;
+}
+
+/* =========================
+   BACKGROUND GRID
+========================= */
+.bg-grid{
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+  background-size:40px 40px;
+  animation: drift 20s linear infinite;
+  pointer-events:none;
+}
+
+@keyframes drift{
+  0%{transform:translateY(0);}
+  100%{transform:translateY(40px);}
+}
+
+/* =========================
+   INTRO
+========================= */
+.intro{
+  position:fixed;
+  inset:0;
+  background:black;
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  animation:fadeOut 3.2s ease forwards 2.5s;
+}
+
+.intro::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(to bottom, transparent, rgba(0,229,255,.15), transparent);
+  animation:scan 1.2s linear infinite;
+}
+
+@keyframes scan{
+  0%{transform:translateY(-100%);}
+  100%{transform:translateY(100%);}
+}
+
+.boot{
+  font-family:'Orbitron';
+  color:var(--cyan);
+  letter-spacing:6px;
+  animation:flicker 1.2s infinite;
+  z-index:2;
+}
+
+@keyframes flicker{
+  0%,100%{opacity:1;}
+  50%{opacity:.3;}
+}
+
+.intro h1{
+  font-family:'Orbitron';
+  margin-top:20px;
+  letter-spacing:3px;
+  z-index:2;
+}
+
+@keyframes fadeOut{
+  to{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+  }
+}
+
+/* HEADER */
+header{
+  position:fixed;
+  top:0;
+  width:100%;
+  z-index:1000;
+  background:rgba(0,0,0,.5);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+
+.nav{
+  width:min(1400px,92%);
+  margin:auto;
+  height:80px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.logo{
+  font-family:Orbitron;
+  font-weight:800;
+  letter-spacing:2px;
+}
+
+.logo span{color:var(--cyan);}
+
+.nav-links{
+  display:flex;
+  gap:25px;
+}
+
+.nav-links a{
+  color:#d1d5db;
+  text-decoration:none;
+  font-size:.8rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+.nav-links a:hover{color:var(--cyan);}
+
+/* =========================
+   HERO
+========================= */
+.hero{
+  min-height:90vh;
+  display:flex;
+  align-items:center;
+  position:relative;
+  opacity:0;
+  transform:translateY(30px);
+  animation:heroIn 1.4s ease forwards 3.1s;
+}
+
+@keyframes heroIn{
+  to{opacity:1;transform:translateY(0);}
+}
+
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.4), rgba(0,0,0,.95)),
+    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1800&auto=format&fit=crop")
+    center/cover;
+  animation:zoom 20s ease-in-out infinite alternate;
+}
+
+@keyframes zoom{
+  from{transform:scale(1);}
+  to{transform:scale(1.08);}
+}
+
+.hero-content{
+  width:min(1200px,92%);
+  margin:auto;
+  position:relative;
+  z-index:2;
+}
+
+.tag{
+  color:var(--gold);
+  letter-spacing:4px;
+  text-transform:uppercase;
+  font-size:.8rem;
+}
+
+h1{
+  font-family:'Orbitron';
+  font-size:clamp(3rem,7vw,6rem);
+  margin:20px 0;
+}
+
+h1 span{color:var(--cyan);}
+
+.desc{
+  max-width:900px;
+  color:#d1d5db;
+  line-height:1.9;
+}
+
+/* =========================
+   AUDIO
+========================= */
+.audio{
+  margin-top:40px;
+  padding:20px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:20px;
+  border-radius:12px;
+}
+
+.btn{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:var(--cyan);
+  border:none;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.wave{
+  display:flex;
+  align-items:flex-end;
+  gap:3px;
+  height:50px;
+}
+
+.bar{
+  width:4px;
+  height:10px;
+  background:rgba(0,229,255,.2);
+  border-radius:2px;
+}
+
+.wave.play .bar{
+  animation:wave 0.7s infinite ease-in-out;
+  background:var(--cyan);
+}
+
+/* stagger fix */
+.bar:nth-child(odd){animation-delay:.1s;}
+.bar:nth-child(even){animation-delay:.2s;}
+
+@keyframes wave{
+  0%,100%{height:12px;}
+  50%{height:50px;}
+}
+
+.progress{
+  height:6px;
+  background:rgba(255,255,255,.08);
+  margin-top:10px;
+  border-radius:3px;
+  overflow:hidden;
+}
+
+.fill{
+  height:100%;
+  width:0%;
+  background:var(--cyan);
+  transition:width .1s linear;
+}
+
+/* =========================
+   SECTIONS
+========================= */
+.section{
+  width:min(1200px,92%);
+  margin:80px auto;
+}
+
+.section h2{
+  font-family:'Orbitron';
+  margin-bottom:20px;
+}
+
+/* FIXED NAME COLLISION */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+}
+
+.card{
+  padding:18px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+  border-radius:12px;
+}
+
+.card h3{
+  color:var(--cyan);
+  font-family:'Orbitron';
+  margin-bottom:10px;
+  font-size:.95rem;
+}
+
+.card ul{
+  list-style:none;
+  color:#d1d5db;
+  line-height:1.6;
+  font-size:.9rem;
+}
+
+/* =========================
+   TIMELINE
+========================= */
+.timeline{
+  margin-top:40px;
+}
+
+.event{
+  display:flex;
+  gap:20px;
+  margin-bottom:12px;
+}
+
+.event span{
+  color:var(--gold);
+  min-width:80px;
+}
+
+.event p{
+  color:#d1d5db;
+}
+
+/* =========================
+   FOOTER
+========================= */
+footer{
+  text-align:center;
+  padding:40px;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- INTRO -->
+<div class="intro">
+  <div class="boot">INITIALIZING ARCHIVE FEED</div>
+  <h1>CASE 003 // ROANOKE</h1>
+</div>
+
+<!-- BACKGROUND -->
+<div class="bg-grid"></div>
+
+<header>
+  <div class="nav">
+    <div class="logo">BONDED<span>INMYSTERY</span></div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="archive.html">Archives</a>
+      <a href="investigation.html">Investigations</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="liveradio.html">Live Radio</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+
+  <div class="hero-content">
+
+    <div class="tag">CASE 003 • MISSING PERSONS • 1590</div>
+
+    <h1>ROANOKE <span>COLONY</span></h1>
+
+    <p class="desc">
+      The Roanoke Colony remains the first major unsolved disappearance in American colonial history.
+      Entire settlement. No bodies. No record. Only one word carved into wood: CROATOAN.
+    </p>
+
+    <div class="audio">
+      <button class="btn" id="btn">▶</button>
+
+      <div>
+        <div class="wave" id="wave">
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+
+        <div class="progress"><div class="fill" id="fill"></div></div>
+      </div>
+
+      <div id="time">0s</div>
+    </div>
+
+    <audio id="audio">
+      <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+    </audio>
+
+  </div>
+
+</section>
+
+<!-- INVESTIGATION -->
+<section class="section">
+
+  <h2>ARCHIVE FILES // CASE DATA</h2>
+
+  <div class="cards">
+
+    <div class="card">
+      <h3>FACT RECORDS</h3>
+      <ul>
+        <li>1587 English settlement established.</li>
+        <li>John White expedition leader.</li>
+        <li>1590 return: colony missing.</li>
+        <li>No remains recovered.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>RELOCATION THEORY</h3>
+      <ul>
+        <li>Migration inland likely.</li>
+        <li>Possible Croatoan integration.</li>
+        <li>Friendly relations documented.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>CASUALTY THEORY</h3>
+      <ul>
+        <li>Food shortage collapse.</li>
+        <li>Disease outbreak hypothesis.</li>
+        <li>Storm dispersal scenario.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>CONFLICT THEORY</h3>
+      <ul>
+        <li>Hostile encounter speculation.</li>
+        <li>No confirmed battlefield.</li>
+        <li>Weak historical support.</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <div class="timeline">
+
+    <h2>CASE TIMELINE</h2>
+
+    <div class="event"><span>1587</span><p>Colony established.</p></div>
+    <div class="event"><span>1587</span><p>Supply voyage begins.</p></div>
+    <div class="event"><span>1588</span><p>Spanish Armada delays return.</p></div>
+    <div class="event"><span>1590</span><p>Colony found abandoned.</p></div>
+    <div class="event"><span>CLUE</span><p>CROATOAN carved into post.</p></div>
+
+  </div>
+
+</section>
+
+<footer>
+  © 2026 Bonded in Mystery — Case 003: Roanoke Colony
+</footer>
+
+<script>
+
+const audio = document.getElementById("audio");
+const btn = document.getElementById("btn");
+const wave = document.getElementById("wave");
+const fill = document.getElementById("fill");
+const time = document.getElementById("time");
+
+let playing = false;
+
+btn.onclick = () => {
+  if(!playing){
+    audio.play();
+    btn.textContent = "❚❚";
+    wave.classList.add("play");
+  } else {
+    audio.pause();
+    btn.textContent = "▶";
+    wave.classList.remove("play");
+  }
+  playing = !playing;
+};
+
+audio.ontimeupdate = () => {
+  const c = audio.currentTime;
+  const d = audio.duration || 1;
+
+  fill.style.width = (c/d)*100 + "%";
+  time.textContent = `${Math.floor(c)}s`;
+};
+
+</script>
+
+</body>
+</html>

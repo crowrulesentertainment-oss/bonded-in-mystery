@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Case 004 // Sodder Children | Bonded in Mystery</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#040404;
+  --line:rgba(255,255,255,.08);
+  --cyan:#00e5ff;
+  --gold:#ffc857;
+  --text:#f5f5f5;
+  --muted:#9ca3af;
+  --red:#ff3b3b;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  overflow-x:hidden;
+}
+
+/* ================= INTRO ================= */
+
+#intro{
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+  text-align:center;
+  overflow:hidden;
+}
+
+/* burning house background */
+.fire-bg{
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.2), rgba(0,0,0,.95)),
+    url("https://images.unsplash.com/photo-1504439468489-c8920d796a29?q=80&w=2000&auto=format&fit=crop");
+  background-size:cover;
+  background-position:center;
+  filter:brightness(.6) contrast(1.3);
+  animation:flicker 2.2s infinite alternate;
+}
+
+@keyframes flicker{
+  0%{filter:brightness(.55) contrast(1.2);}
+  25%{filter:brightness(.75) contrast(1.4);}
+  50%{filter:brightness(.5) contrast(1.1);}
+  75%{filter:brightness(.8) contrast(1.5);}
+  100%{filter:brightness(.6) contrast(1.2);}
+}
+
+/* smoke overlay */
+.smoke{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,.05), transparent 40%),
+    radial-gradient(circle at 70% 70%, rgba(255,255,255,.04), transparent 45%);
+  animation:smoke 8s linear infinite;
+}
+
+@keyframes smoke{
+  0%{transform:translateY(0);}
+  50%{transform:translateY(-20px);}
+  100%{transform:translateY(0);}
+}
+
+/* boot text */
+.boot-text{
+  font-family:'Orbitron';
+  letter-spacing:6px;
+  color:var(--cyan);
+  animation:glitch 1.2s infinite;
+  z-index:2;
+}
+
+@keyframes glitch{
+  0%{transform:translate(0);}
+  25%{transform:translate(-2px,1px);}
+  50%{transform:translate(2px,-1px);}
+  75%{transform:translate(-1px,2px);}
+  100%{transform:translate(0);}
+}
+
+.sub{
+  margin-top:10px;
+  color:var(--muted);
+  letter-spacing:3px;
+  font-size:.8rem;
+  z-index:2;
+}
+
+.warning{
+  margin-top:20px;
+  color:var(--red);
+  letter-spacing:4px;
+  font-size:.75rem;
+  animation:blink 1s infinite;
+  z-index:2;
+}
+
+@keyframes blink{
+  0%,100%{opacity:.3;}
+  50%{opacity:1;}
+}
+
+.skip{
+  position:absolute;
+  bottom:40px;
+  color:var(--gold);
+  font-size:.75rem;
+  letter-spacing:3px;
+  cursor:pointer;
+  z-index:2;
+}
+
+/* fade out */
+#intro.hide{
+  opacity:0;
+  transition:1s ease;
+  pointer-events:none;
+}
+
+/* ================= MAIN GRID ================= */
+
+.grid{
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.04) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+}
+
+/* HEADER */
+header{
+  position:fixed;
+  top:0;
+  width:100%;
+  z-index:1000;
+  background:rgba(0,0,0,.5);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+
+.nav{
+  width:min(1400px,92%);
+  margin:auto;
+  height:80px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.logo{
+  font-family:Orbitron;
+  font-weight:800;
+  letter-spacing:2px;
+}
+
+.logo span{color:var(--cyan);}
+
+.nav-links{
+  display:flex;
+  gap:25px;
+}
+
+.nav-links a{
+  color:#d1d5db;
+  text-decoration:none;
+  font-size:.8rem;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+.nav-links a:hover{color:var(--cyan);}
+
+/* ================= HERO ================= */
+
+.hero{
+  min-height:90vh;
+  display:flex;
+  align-items:center;
+  position:relative;
+}
+
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.4), rgba(0,0,0,.95)),
+    url("https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?q=80&w=1800&auto=format&fit=crop");
+  background-size:cover;
+  background-position:center;
+  animation:zoom 18s ease-in-out infinite alternate;
+}
+
+@keyframes zoom{
+  from{transform:scale(1);}
+  to{transform:scale(1.08);}
+}
+
+.hero-content{
+  width:min(1200px,92%);
+  margin:auto;
+  position:relative;
+  z-index:2;
+}
+
+h1{
+  font-family:Orbitron;
+  font-size:clamp(3rem,7vw,6.5rem);
+}
+
+h1 span{color:var(--cyan);}
+
+.tag{
+  color:var(--gold);
+  letter-spacing:4px;
+  font-size:.8rem;
+}
+
+.desc{
+  max-width:850px;
+  line-height:1.8;
+  color:#d1d5db;
+  margin-top:20px;
+}
+
+/* ================= AUDIO ================= */
+
+.audio-player{
+  margin-top:40px;
+  padding:20px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:20px;
+  border-radius:10px;
+  align-items:center;
+}
+
+.play-btn{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:var(--cyan);
+  border:none;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.wave{
+  display:flex;
+  gap:3px;
+  align-items:flex-end;
+  height:50px;
+}
+
+.bar{
+  width:4px;
+  height:10px;
+  background:rgba(0,229,255,.3);
+  border-radius:2px;
+}
+
+.progress{
+  height:6px;
+  background:rgba(255,255,255,.08);
+  border-radius:3px;
+  overflow:hidden;
+  margin-top:8px;
+}
+
+.progress-fill{
+  height:100%;
+  width:0%;
+  background:var(--cyan);
+}
+
+.status{
+  margin-top:8px;
+  color:var(--gold);
+  font-size:.75rem;
+  letter-spacing:3px;
+}
+
+/* ================= DOSSIER ================= */
+
+section{
+  padding:100px 0;
+}
+
+.container{
+  width:min(1200px,92%);
+  margin:auto;
+}
+
+.title{
+  font-family:Orbitron;
+  color:var(--cyan);
+  margin-bottom:30px;
+  letter-spacing:3px;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+}
+
+.card{
+  padding:20px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.02);
+  border-radius:10px;
+}
+
+.card h3{
+  color:var(--gold);
+  margin-bottom:10px;
+  font-family:Orbitron;
+  font-size:.9rem;
+}
+
+/* THEORY */
+
+.theories{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:20px;
+}
+
+.theory{
+  padding:20px;
+  border:1px solid var(--line);
+  transition:.3s;
+  cursor:pointer;
+}
+
+.theory:hover{
+  border-color:var(--cyan);
+  transform:translateY(-4px);
+}
+
+/* FOOTER */
+
+footer{
+  padding:40px;
+  text-align:center;
+  color:var(--muted);
+  border-top:1px solid var(--line);
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ================= INTRO ================= -->
+<div id="intro">
+  <div class="fire-bg"></div>
+  <div class="smoke"></div>
+
+  <div class="boot-text" style="font-size:3rem;">SYSTEM BOOT</div>
+  <div class="boot-text" style="font-size:1.8rem; margin-top:10px; color:var(--gold);">
+    CASE 004 // SODDER CHILDREN
+  </div>
+
+  <div class="sub">ACCESSING ARCHIVAL FIRE INCIDENT FILES...</div>
+  <div class="warning">STRUCTURE FIRE DETECTED • FAYETTEVILLE, WV • 1945</div>
+
+  <div class="skip" onclick="closeIntro()">SKIP</div>
+</div>
+
+<div class="grid"></div>
+
+<header>
+  <div class="nav">
+    <div class="logo">BONDED<span>INMYSTERY</span></div>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="archive.html">Archives</a>
+      <a href="investigation.html">Investigations</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="liveradio.html">Live Radio</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-content">
+
+    <div class="tag">CASE 004 • MISSING PERSONS • 1945</div>
+
+    <h1>SODDER <span>CHILDREN</span></h1>
+
+    <p class="desc">
+      A house fire consumes a family home in West Virginia.
+      Five children vanish. No remains are confirmed. Official explanations fail to settle the case.
+    </p>
+
+    <div class="audio-player">
+      <button class="play-btn" id="playBtn">▶</button>
+
+      <div>
+        <div class="wave" id="wave"></div>
+        <div class="progress"><div class="progress-fill" id="progress"></div></div>
+        <div class="status" id="status">STANDBY SIGNAL</div>
+      </div>
+
+      <div id="time">00:00 / 00:00</div>
+    </div>
+
+    <audio id="audio">
+      <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+    </audio>
+
+  </div>
+</section>
+
+<!-- FACTS -->
+<section>
+  <div class="container">
+    <div class="title">CASE FACTS</div>
+
+    <div class="cards">
+      <div class="card"><h3>FIRE EVENT</h3>Christmas Eve 1945 house fire in Fayetteville, WV.</div>
+      <div class="card"><h3>MISSING CHILDREN</h3>Five children never recovered from the scene.</div>
+      <div class="card"><h3>NO REMAINS</h3>No confirmed remains found in debris.</div>
+      <div class="card"><h3>INVESTIGATION GAPS</h3>Conflicting reports and missing documentation.</div>
+    </div>
+  </div>
+</section>
+
+<!-- THEORIES -->
+<section>
+  <div class="container">
+    <div class="title">THEORIES</div>
+
+    <div class="theories">
+      <div class="theory">🔥 Accidental fire + investigative failure</div>
+      <div class="theory">🚗 Possible abduction before full collapse</div>
+      <div class="theory">📞 Post-fire survival sightings reported</div>
+      <div class="theory">🕯️ External interference or retaliation theory</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  © 2026 Bonded in Mystery — Case 004: Sodder Children
+</footer>
+
+<script>
+
+/* INTRO */
+const intro=document.getElementById("intro");
+function closeIntro(){
+  intro.classList.add("hide");
+  setTimeout(()=>intro.remove(),1000);
+}
+setTimeout(closeIntro,4500);
+
+/* WAVES */
+const wave=document.getElementById("wave");
+for(let i=0;i<14;i++){
+  const b=document.createElement("div");
+  b.className="bar";
+  b.style.height=(10+Math.random()*40)+"px";
+  wave.appendChild(b);
+}
+
+/* AUDIO */
+const audio=document.getElementById("audio");
+const playBtn=document.getElementById("playBtn");
+const progress=document.getElementById("progress");
+const status=document.getElementById("status");
+const time=document.getElementById("time");
+
+let playing=false;
+
+playBtn.onclick=async()=>{
+  if(!playing){
+    await audio.play();
+    playBtn.textContent="❚❚";
+    status.textContent="LIVE FEED";
+    playing=true;
+  }else{
+    audio.pause();
+    playBtn.textContent="▶";
+    status.textContent="PAUSED";
+    playing=false;
+  }
+};
+
+audio.addEventListener("timeupdate",()=>{
+  if(!audio.duration)return;
+  progress.style.width=(audio.currentTime/audio.duration)*100+"%";
+
+  time.textContent=
+  `${Math.floor(audio.currentTime/60)}:${String(Math.floor(audio.currentTime%60)).padStart(2,"0")} / `+
+  `${Math.floor(audio.duration/60)}:${String(Math.floor(audio.duration%60)).padStart(2,"0")}`;
+});
+
+</script>
+
+</body>
+</html>
