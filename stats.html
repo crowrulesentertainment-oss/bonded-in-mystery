@@ -16,7 +16,7 @@ body{
 }
 
 /* =======================
-   WRAPPER (TRANSPARENT)
+   WRAPPER
 ======================= */
 
 #bar{
@@ -51,7 +51,7 @@ body{
 }
 
 /* =======================
-   BLACK PILLS
+   BLOCKS
 ======================= */
 
 .block{
@@ -66,8 +66,6 @@ body{
 
     backdrop-filter: blur(8px);
 }
-
-/* TEXT */
 
 .label{
     font-size:9px;
@@ -124,10 +122,6 @@ body{
     border:1px solid rgba(255,255,255,0.10);
 }
 
-/* =======================
-   ANIMATION TWEAK
-======================= */
-
 </style>
 </head>
 
@@ -139,21 +133,21 @@ body{
 
     <div class="block">
         <span class="label">LIVE</span>
-        <span class="value viewers" id="live">--</span>
+        <span class="value viewers" id="live">0</span>
     </div>
 
     <div class="divider"></div>
 
     <div class="block">
         <span class="label">PEAK</span>
-        <span class="value peak" id="peak">--</span>
+        <span class="value peak" id="peak">0</span>
     </div>
 
     <div class="divider"></div>
 
     <div class="block">
         <span class="label">SUBS</span>
-        <span class="value subs" id="subs">--</span>
+        <span class="value subs" id="subs">0</span>
     </div>
 
     <div class="divider"></div>
@@ -195,7 +189,7 @@ function animate(el, target){
     let steps = 20;
     let i = 0;
 
-    let interval = setInterval(()=>{
+    let interval = setInterval(() => {
 
         i++;
         start += diff / steps;
@@ -212,36 +206,21 @@ function animate(el, target){
 }
 
 /* =======================
-   FETCH STATS
+   FETCH
 ======================= */
 
 async function fetchStats(){
-
     try{
         const res = await fetch(API_URL + "?t=" + Date.now());
         return await res.json();
-    }catch(e){
+    } catch(e){
         document.getElementById("status").textContent = "RETRY";
         return null;
     }
 }
 
 /* =======================
-   CHANGE DETECTION
-======================= */
-
-function changed(data){
-    if(!data) return false;
-
-    return (
-        data.liveViewers !== last.live ||
-        data.peakViewers !== last.peak ||
-        data.subscribers !== last.subs
-    );
-}
-
-/* =======================
-   APPLY UPDATE
+   APPLY DATA (ALWAYS RUN)
 ======================= */
 
 function apply(data){
@@ -250,13 +229,21 @@ function apply(data){
     const peak = data.peakViewers || 0;
     const subs = data.subscribers || 0;
 
-    document.getElementById("dot")
-        .classList.toggle("off", live === 0);
+    // LIVE indicator
+    const isLive = live > 0;
 
+    document.getElementById("dot")
+        .classList.toggle("off", !isLive);
+
+    document.getElementById("status").textContent =
+        isLive ? "LIVE" : "OFFLINE";
+
+    // ALWAYS update values (even offline)
     animate(document.getElementById("live"), live);
     animate(document.getElementById("peak"), peak);
     animate(document.getElementById("subs"), subs);
 
+    // Goal + progress
     document.getElementById("goal").textContent =
         GOAL.toLocaleString();
 
@@ -264,10 +251,6 @@ function apply(data){
 
     document.getElementById("progressBar").style.width =
         percent.toFixed(1) + "%";
-
-    document.getElementById("status").textContent = "LIVE";
-
-    last = { live, peak, subs };
 }
 
 /* =======================
@@ -278,11 +261,14 @@ async function update(){
 
     const data = await fetchStats();
 
-    if(changed(data)){
-        apply(data);
-    } else {
-        document.getElementById("status").textContent = "IDLE";
+    if(!data){
+        document.getElementById("status").textContent = "RETRY";
+        return;
     }
+
+    // ALWAYS APPLY so subs never disappear
+    apply(data);
+
 }
 
 update();
