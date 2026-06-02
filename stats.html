@@ -15,10 +15,6 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
-/* =======================
-   WRAPPER
-======================= */
-
 #bar{
     position:absolute;
     top:10px;
@@ -27,8 +23,6 @@ body{
     display:flex;
     align-items:center;
     gap:10px;
-
-    background:transparent;
 }
 
 /* LIVE DOT */
@@ -41,18 +35,15 @@ body{
     animation:pulse 1.5s infinite;
 }
 
-.live-dot.off{
-    background:#ff4444;
-}
+.live-dot.off{ background:#ff4444; }
+.live-dot.upcoming{ background:#ffb300; }
 
 @keyframes pulse{
     0%,100%{opacity:1}
     50%{opacity:.3}
 }
 
-/* =======================
-   BLOCKS
-======================= */
+/* BLOCKS */
 
 .block{
     display:flex;
@@ -70,7 +61,6 @@ body{
 .label{
     font-size:9px;
     color:#aaa;
-    letter-spacing:0.8px;
 }
 
 .value{
@@ -78,22 +68,16 @@ body{
     font-weight:700;
 }
 
-/* COLORS */
-
 .viewers{color:#00ff88;}
 .peak{color:#ffb300;}
 .subs{color:#00e5ff;}
 .goal{color:#ff5f7a;}
-
-/* DIVIDER */
 
 .divider{
     width:1px;
     height:16px;
     background:rgba(255,255,255,0.15);
 }
-
-/* PROGRESS */
 
 #progressWrap{
     width:55px;
@@ -110,8 +94,6 @@ body{
     background:#00e5ff;
     transition:width .6s ease;
 }
-
-/* STATUS */
 
 #status{
     font-size:9px;
@@ -170,27 +152,28 @@ body{
 <script>
 
 const GOAL = 1000;
-const API_URL = "https://crowrulesentertainment-oss.github.io/bonded-in-mystery/youtube-stats.php";
 
-let last = {
-    live: null,
-    peak: null,
-    subs: null
-};
+/* Your stats endpoint (subs/peak/live viewers) */
+const STATS_API =
+"https://crowrulesentertainment-oss.github.io/bonded-in-mystery/youtube-stats.php";
+
+/* YouTube API (LIVE STATUS ONLY) */
+const YT_API_KEY = "YOUR_YOUTUBE_API_KEY";
+const CHANNEL_ID = "YOUR_CHANNEL_ID";
+
+let lastLiveState = "unknown";
 
 /* =======================
-   SMOOTH ANIMATION
+   ANIMATION
 ======================= */
 
 function animate(el, target){
-
     let start = parseFloat(el.dataset.val || 0);
     let diff = target - start;
     let steps = 20;
     let i = 0;
 
     let interval = setInterval(() => {
-
         i++;
         start += diff / steps;
 
@@ -206,12 +189,12 @@ function animate(el, target){
 }
 
 /* =======================
-   FETCH
+   FETCH STATS
 ======================= */
 
 async function fetchStats(){
     try{
-        const res = await fetch(API_URL + "?t=" + Date.now());
+        const res = await fetch(STATS_API + "?t=" + Date.now());
         return await res.json();
     } catch(e){
         document.getElementById("status").textContent = "RETRY";
@@ -220,37 +203,76 @@ async function fetchStats(){
 }
 
 /* =======================
-   APPLY DATA (ALWAYS RUN)
+   YOUTUBE LIVE STATUS CHECK
 ======================= */
 
-function apply(data){
+async function fetchLiveStatus(){
+
+    try{
+        const url =
+`https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${CHANNEL_ID}&key=${YT_API_KEY}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const status = data.items?.[0]?.snippet?.liveBroadcastContent;
+
+        // live | upcoming | none
+        return status || "unknown";
+
+    } catch(e){
+        return "unknown";
+    }
+}
+
+/* =======================
+   APPLY STATS
+======================= */
+
+function applyStats(data){
 
     const live = data.liveViewers || 0;
     const peak = data.peakViewers || 0;
     const subs = data.subscribers || 0;
 
-    // LIVE indicator
-    const isLive = live > 0;
-
-    document.getElementById("dot")
-        .classList.toggle("off", !isLive);
-
-    document.getElementById("status").textContent =
-        isLive ? "LIVE" : "OFFLINE";
-
-    // ALWAYS update values (even offline)
     animate(document.getElementById("live"), live);
     animate(document.getElementById("peak"), peak);
     animate(document.getElementById("subs"), subs);
-
-    // Goal + progress
-    document.getElementById("goal").textContent =
-        GOAL.toLocaleString();
 
     const percent = Math.min((subs / GOAL) * 100, 100);
 
     document.getElementById("progressBar").style.width =
         percent.toFixed(1) + "%";
+
+    document.getElementById("goal").textContent =
+        GOAL.toLocaleString();
+}
+
+/* =======================
+   STATUS UI
+======================= */
+
+function applyLiveState(state){
+
+    const dot = document.getElementById("dot");
+    const status = document.getElementById("status");
+
+    dot.classList.remove("off","upcoming");
+
+    if(state === "live"){
+        status.textContent = "LIVE";
+        dot.classList.remove("off");
+    }
+    else if(state === "upcoming"){
+        status.textContent = "UPCOMING";
+        dot.classList.add("upcoming");
+    }
+    else{
+        status.textContent = "OFFLINE";
+        dot.classList.add("off");
+    }
+
+    lastLiveState = state;
 }
 
 /* =======================
@@ -259,15 +281,16 @@ function apply(data){
 
 async function update(){
 
-    const data = await fetchStats();
+    const [stats, liveState] = await Promise.all([
+        fetchStats(),
+        fetchLiveStatus()
+    ]);
 
-    if(!data){
-        document.getElementById("status").textContent = "RETRY";
-        return;
+    if(stats){
+        applyStats(stats);
     }
 
-    // ALWAYS APPLY so subs never disappear
-    apply(data);
+    applyLiveState(liveState);
 
 }
 
