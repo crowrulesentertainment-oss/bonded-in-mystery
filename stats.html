@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>YouTube Live Stats Bar Compact</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+    margin:0;
+    overflow:hidden;
+    background:transparent;
+    font-family:'Orbitron',sans-serif;
+}
+
+/* =======================
+   WRAPPER (TRANSPARENT)
+======================= */
+
+#bar{
+    position:absolute;
+    top:10px;
+    right:10px;
+
+    display:flex;
+    align-items:center;
+    gap:10px;
+
+    background:transparent;
+}
+
+/* LIVE DOT */
+
+.live-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#00ff88;
+    animation:pulse 1.5s infinite;
+}
+
+.live-dot.off{
+    background:#ff4444;
+}
+
+@keyframes pulse{
+    0%,100%{opacity:1}
+    50%{opacity:.3}
+}
+
+/* =======================
+   BLACK PILLS
+======================= */
+
+.block{
+    display:flex;
+    align-items:baseline;
+    gap:5px;
+
+    padding:6px 10px;
+    background:rgba(0,0,0,0.88);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:999px;
+
+    backdrop-filter: blur(8px);
+}
+
+/* TEXT */
+
+.label{
+    font-size:9px;
+    color:#aaa;
+    letter-spacing:0.8px;
+}
+
+.value{
+    font-size:12px;
+    font-weight:700;
+}
+
+/* COLORS */
+
+.viewers{color:#00ff88;}
+.peak{color:#ffb300;}
+.subs{color:#00e5ff;}
+.goal{color:#ff5f7a;}
+
+/* DIVIDER */
+
+.divider{
+    width:1px;
+    height:16px;
+    background:rgba(255,255,255,0.15);
+}
+
+/* PROGRESS */
+
+#progressWrap{
+    width:55px;
+    height:4px;
+    background:rgba(0,0,0,0.6);
+    border-radius:10px;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.12);
+}
+
+#progressBar{
+    height:100%;
+    width:0%;
+    background:#00e5ff;
+    transition:width .6s ease;
+}
+
+/* STATUS */
+
+#status{
+    font-size:9px;
+    color:#888;
+    padding:6px 8px;
+    background:rgba(0,0,0,0.75);
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,0.10);
+}
+
+/* =======================
+   ANIMATION TWEAK
+======================= */
+
+</style>
+</head>
+
+<body>
+
+<div id="bar">
+
+    <div class="live-dot" id="dot"></div>
+
+    <div class="block">
+        <span class="label">LIVE</span>
+        <span class="value viewers" id="live">--</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="block">
+        <span class="label">PEAK</span>
+        <span class="value peak" id="peak">--</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="block">
+        <span class="label">SUBS</span>
+        <span class="value subs" id="subs">--</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="block">
+        <span class="label">GOAL</span>
+        <span class="value goal" id="goal">1000</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="progressWrap">
+        <div id="progressBar"></div>
+    </div>
+
+    <div id="status">SYNC</div>
+
+</div>
+
+<script>
+
+const GOAL = 1000;
+const API_URL = "https://bonded-in-mystery.infinityfree.me/youtube-stats.php";
+
+let last = {
+    live: null,
+    peak: null,
+    subs: null
+};
+
+/* =======================
+   SMOOTH ANIMATION
+======================= */
+
+function animate(el, target){
+
+    let start = parseFloat(el.dataset.val || 0);
+    let diff = target - start;
+    let steps = 20;
+    let i = 0;
+
+    let interval = setInterval(()=>{
+
+        i++;
+        start += diff / steps;
+
+        if(i >= steps){
+            start = target;
+            clearInterval(interval);
+        }
+
+        el.textContent = Math.floor(start).toLocaleString();
+        el.dataset.val = start;
+
+    }, 30);
+}
+
+/* =======================
+   FETCH STATS
+======================= */
+
+async function fetchStats(){
+
+    try{
+        const res = await fetch(API_URL + "?t=" + Date.now());
+        return await res.json();
+    }catch(e){
+        document.getElementById("status").textContent = "RETRY";
+        return null;
+    }
+}
+
+/* =======================
+   CHANGE DETECTION
+======================= */
+
+function changed(data){
+    if(!data) return false;
+
+    return (
+        data.liveViewers !== last.live ||
+        data.peakViewers !== last.peak ||
+        data.subscribers !== last.subs
+    );
+}
+
+/* =======================
+   APPLY UPDATE
+======================= */
+
+function apply(data){
+
+    const live = data.liveViewers || 0;
+    const peak = data.peakViewers || 0;
+    const subs = data.subscribers || 0;
+
+    document.getElementById("dot")
+        .classList.toggle("off", live === 0);
+
+    animate(document.getElementById("live"), live);
+    animate(document.getElementById("peak"), peak);
+    animate(document.getElementById("subs"), subs);
+
+    document.getElementById("goal").textContent =
+        GOAL.toLocaleString();
+
+    const percent = Math.min((subs / GOAL) * 100, 100);
+
+    document.getElementById("progressBar").style.width =
+        percent.toFixed(1) + "%";
+
+    document.getElementById("status").textContent = "LIVE";
+
+    last = { live, peak, subs };
+}
+
+/* =======================
+   MAIN LOOP
+======================= */
+
+async function update(){
+
+    const data = await fetchStats();
+
+    if(changed(data)){
+        apply(data);
+    } else {
+        document.getElementById("status").textContent = "IDLE";
+    }
+}
+
+update();
+setInterval(update, 12000);
+
+</script>
+
+</body>
+</html>

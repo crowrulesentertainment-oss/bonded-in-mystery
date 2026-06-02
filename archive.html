@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Bonded in Mystery // Archive Database</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#040404;
+  --panel:#0c0c0c;
+  --line:rgba(255,255,255,.08);
+  --cyan:#00e5ff;
+  --gold:#ffc857;
+  --text:#f5f5f5;
+  --muted:#9ca3af;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  overflow-x:hidden;
+}
+
+/* HEADER */
+header{
+  position:fixed;
+  top:0;
+  width:100%;
+  z-index:999;
+  backdrop-filter:blur(14px);
+  background:rgba(0,0,0,.55);
+  border-bottom:1px solid var(--line);
+}
+
+.nav{
+  width:min(1500px,92%);
+  margin:auto;
+  height:82px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.logo{
+  font-family:'Orbitron',sans-serif;
+  font-weight:800;
+  letter-spacing:2px;
+}
+
+.logo span{color:var(--cyan);}
+
+.nav-links{
+  display:flex;
+  gap:24px;
+  align-items:center;
+}
+
+.nav-links a{
+  color:var(--cyan);
+  text-decoration:none;
+  font-size:.85rem;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  padding:8px 10px;
+  border:1px solid transparent;
+  transition:.3s;
+}
+
+.nav-links a:hover{
+  border-color:var(--cyan);
+  transform:translateY(-2px);
+}
+
+/* HERO */
+.hero{
+  min-height:60vh;
+  display:flex;
+  align-items:center;
+  position:relative;
+  padding-top:90px;
+}
+
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.4), rgba(0,0,0,.92)),
+    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1800&auto=format&fit=crop")
+    center/cover;
+  animation:zoom 18s infinite alternate;
+}
+
+@keyframes zoom{
+  from{transform:scale(1);}
+  to{transform:scale(1.06);}
+}
+
+.hero-content{
+  width:min(1500px,92%);
+  margin:auto;
+  position:relative;
+  z-index:2;
+}
+
+.hero h1{
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(3rem,7vw,6rem);
+}
+
+.hero h1 span{color:var(--cyan);}
+
+/* ARCHIVE */
+.archives{
+  padding:100px 0;
+}
+
+.container{
+  width:min(1500px,92%);
+  margin:auto;
+}
+
+.section-title{
+  font-family:'Orbitron',sans-serif;
+  font-size:3rem;
+  margin-bottom:10px;
+}
+
+.section-title span{color:var(--cyan);}
+
+.search-box input{
+  width:320px;
+  max-width:100%;
+  padding:16px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  color:white;
+  outline:none;
+}
+
+/* GRID */
+.archive-grid{
+  margin-top:40px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:30px;
+}
+
+/* CARD (NOW CLICKABLE) */
+.archive-card{
+  display:block;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  text-decoration:none;
+  color:inherit;
+  transition:.4s;
+  overflow:hidden;
+}
+
+.archive-card:hover{
+  transform:translateY(-8px);
+  border-color:rgba(0,229,255,.3);
+}
+
+.archive-image{
+  height:240px;
+  overflow:hidden;
+  position:relative;
+}
+
+.archive-image img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.status{
+  position:absolute;
+  top:0;
+  left:0;
+  margin:15px;
+  background:rgba(0,0,0,.7);
+  padding:8px 12px;
+  font-size:.7rem;
+  letter-spacing:2px;
+}
+
+.archive-content{
+  padding:25px;
+}
+
+.case-meta{
+  color:var(--cyan);
+  font-size:.7rem;
+  letter-spacing:2px;
+  margin-bottom:10px;
+}
+
+.archive-content h3{
+  font-family:'Orbitron',sans-serif;
+  margin-bottom:10px;
+}
+
+.archive-content p{
+  color:var(--muted);
+  line-height:1.7;
+  margin-bottom:20px;
+}
+
+.open-btn{
+  display:inline-block;
+  padding:10px 14px;
+  border:1px solid var(--cyan);
+  color:var(--cyan);
+  font-size:.75rem;
+  letter-spacing:2px;
+}
+
+/* FOOTER */
+footer{
+  padding:40px;
+  text-align:center;
+  color:var(--muted);
+  border-top:1px solid var(--line);
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="nav">
+    <div class="logo">BONDED<span>INMYSTERY</span></div>
+
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="archive.html">Archives</a>
+      <a href="investigation.html">Investigations</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="liveradio.html">Live Radio</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-content">
+    <h1>THE <span>ARCHIVE</span></h1>
+  </div>
+</section>
+
+<section class="archives">
+  <div class="container">
+
+    <h2 class="section-title">CASE <span>FILE</span></h2>
+
+    <div class="search-box">
+      <input id="searchInput" placeholder="Search Case 001..." />
+    </div>
+
+    <div class="archive-grid" id="archiveGrid"></div>
+
+  </div>
+</section>
+
+<footer>
+  © 2026 Bonded in Mystery — Archive
+</footer>
+
+<script>
+
+/* CASE DATABASE */
+const cases = [
+  {
+    id: 1,
+    category: "missing",
+    status: "UNSOLVED",
+    episode: "EPISODE 001 • MISSING PERSONS",
+    title: "Amelia Earhart",
+    description: "The disappearance of Amelia Earhart remains one of the greatest unsolved aviation mysteries in history.",
+    runtime: "?? MINUTES",
+    image: "https://wallpapercave.com/wp/wp2426210.jpg",
+    link: "cases/001.html"
+  }
+];
+
+/* RENDER */
+const grid = document.getElementById("archiveGrid");
+
+function render(filterText = "") {
+
+  grid.innerHTML = "";
+
+  const results = cases.filter(c =>
+    c.title.toLowerCase().includes(filterText) ||
+    c.description.toLowerCase().includes(filterText)
+  );
+
+  results.forEach(c => {
+
+    grid.innerHTML += `
+      <a class="archive-card" href="${c.link}">
+
+        <div class="archive-image">
+          <img src="${c.image}" alt="${c.title}" />
+          <div class="status">${c.status}</div>
+        </div>
+
+        <div class="archive-content">
+
+          <div class="case-meta">${c.episode}</div>
+
+          <h3>${c.title}</h3>
+
+          <p>${c.description}</p>
+
+          <span class="open-btn">OPEN FILE</span>
+
+        </div>
+
+      </a>
+    `;
+  });
+}
+
+/* INIT */
+render();
+
+/* SEARCH */
+document.getElementById("searchInput").addEventListener("input", e => {
+  render(e.target.value.toLowerCase());
+});
+
+</script>
+
+</body>
+</html>

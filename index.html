@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Bonded in Mystery // Investigative Podcast</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#030303;
+  --panel:#0b0b0b;
+  --line:rgba(255,255,255,.08);
+  --cyan:#00e5ff;
+  --cyan-soft:#6ef3ff;
+  --gold:#ffc857;
+  --text:#f5f5f5;
+  --muted:#9ca3af;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  overflow-x:hidden;
+}
+
+/* ===============================
+BACKGROUND
+=============================== */
+
+.grid{
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,.05) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+  z-index:-3;
+  mask-image:linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+}
+
+.noise{
+  position:fixed;
+  inset:0;
+  background:url("https://www.transparenttextures.com/patterns/asfalt-dark.png");
+  opacity:.08;
+  pointer-events:none;
+  z-index:-2;
+}
+
+/* ===============================
+INTRO SCREEN
+=============================== */
+
+#intro{
+  position:fixed;
+  inset:0;
+  background:#000;
+  z-index:99999;
+  overflow:hidden;
+  animation:introFade 1.4s ease forwards;
+  animation-delay:5.8s;
+}
+
+@keyframes introFade{
+  to{
+    opacity:0;
+    visibility:hidden;
+  }
+}
+
+.intro-bg{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at center, rgba(0,229,255,.08), transparent 60%);
+}
+
+.intro-center{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+.scan{
+  position:absolute;
+  width:100%;
+  height:3px;
+  background:linear-gradient(
+    to right,
+    transparent,
+    rgba(0,229,255,.9),
+    transparent
+  );
+  box-shadow:0 0 20px rgba(0,229,255,.9);
+  animation:scanMove 2s linear infinite;
+}
+
+@keyframes scanMove{
+  from{
+    transform:translateY(-400px);
+  }
+  to{
+    transform:translateY(500px);
+  }
+}
+
+.intro-logo{
+  position:relative;
+  font-family:'Orbitron';
+  font-size:clamp(2.8rem,8vw,7rem);
+  font-weight:800;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  animation:logoReveal 1.5s ease forwards;
+}
+
+.intro-logo span{
+  color:var(--cyan);
+  text-shadow:0 0 18px rgba(0,229,255,.9);
+}
+
+@keyframes logoReveal{
+  from{
+    opacity:0;
+    transform:scale(.8);
+  }
+  to{
+    opacity:1;
+    transform:scale(1);
+  }
+}
+
+.intro-logo::before,
+.intro-logo::after{
+  content:"BONDEDINMYSTERY";
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  opacity:.18;
+}
+
+.intro-logo::before{
+  color:#ff0040;
+  animation:glitch1 .25s infinite;
+}
+
+.intro-logo::after{
+  color:#00e5ff;
+  animation:glitch2 .25s infinite;
+}
+
+@keyframes glitch1{
+  0%{ transform:translate(-50%,0); }
+  25%{ transform:translate(-48%,2px); }
+  50%{ transform:translate(-52%,-2px); }
+  100%{ transform:translate(-50%,0); }
+}
+
+@keyframes glitch2{
+  0%{ transform:translate(-50%,0); }
+  25%{ transform:translate(-52%,-2px); }
+  50%{ transform:translate(-48%,2px); }
+  100%{ transform:translate(-50%,0); }
+}
+
+.loading-wrap{
+  margin-top:40px;
+  width:min(500px,80vw);
+}
+
+.loading-bar{
+  height:10px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  overflow:hidden;
+}
+
+.loading-bar span{
+  display:block;
+  height:100%;
+  width:0%;
+  background:linear-gradient(
+    90deg,
+    var(--cyan),
+    var(--cyan-soft)
+  );
+  box-shadow:0 0 18px rgba(0,229,255,.9);
+  animation:loadBar 5s ease forwards;
+}
+
+@keyframes loadBar{
+  to{
+    width:100%;
+  }
+}
+
+.loading-text{
+  margin-top:14px;
+  text-align:center;
+  letter-spacing:3px;
+  color:var(--cyan);
+  font-size:.8rem;
+  text-transform:uppercase;
+  animation:flicker 2s infinite;
+}
+
+@keyframes flicker{
+  0%,18%,22%,25%,53%,57%,100%{
+    opacity:1;
+  }
+  20%,24%,55%{
+    opacity:.35;
+  }
+}
+
+/* ===============================
+HEADER
+=============================== */
+
+header{
+  position:fixed;
+  top:0;
+  width:100%;
+  z-index:1000;
+  backdrop-filter:blur(12px);
+  background:rgba(0,0,0,.45);
+  border-bottom:1px solid var(--line);
+}
+
+.nav{
+  width:min(1250px,92%);
+  margin:auto;
+  height:85px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.logo{
+  font-family:'Orbitron';
+  font-weight:800;
+  letter-spacing:2px;
+  font-size:1.1rem;
+}
+
+.logo span{
+  color:var(--cyan);
+}
+
+.nav-links{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.nav-links a{
+  color:var(--cyan);
+  text-decoration:none;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  font-size:.8rem;
+  padding:10px 14px;
+  border:1px solid transparent;
+  transition:.3s;
+}
+
+.nav-links a:hover{
+  border-color:var(--cyan);
+  background:rgba(0,229,255,.08);
+  transform:translateY(-2px);
+}
+
+/* ===============================
+HERO
+=============================== */
+
+.hero{
+  min-height:100vh;
+  position:relative;
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+}
+
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.35), rgba(0,0,0,.92)),
+    url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1800&auto=format&fit=crop")
+    center/cover;
+  animation:heroZoom 18s linear infinite alternate;
+}
+
+@keyframes heroZoom{
+  from{ transform:scale(1); }
+  to{ transform:scale(1.08); }
+}
+
+.hero-overlay{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at center, rgba(0,229,255,.1), transparent 50%);
+}
+
+.hero-content{
+  width:min(1250px,92%);
+  margin:auto;
+  position:relative;
+  z-index:2;
+}
+
+.hero-tag{
+  color:var(--gold);
+  letter-spacing:4px;
+  text-transform:uppercase;
+  margin-bottom:24px;
+  font-size:.85rem;
+}
+
+.hero h1{
+  font-family:'Orbitron';
+  font-size:clamp(3rem,9vw,8rem);
+  line-height:.92;
+  text-transform:uppercase;
+  max-width:900px;
+}
+
+.hero h1 span{
+  color:var(--cyan);
+  text-shadow:0 0 20px rgba(0,229,255,.7);
+}
+
+.hero p{
+  max-width:760px;
+  color:#d1d5db;
+  line-height:1.9;
+  margin-top:30px;
+  margin-bottom:40px;
+  font-size:1.05rem;
+}
+
+.hero-buttons{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.btn{
+  display:inline-block;
+  padding:15px 28px;
+  text-decoration:none;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  font-weight:700;
+  transition:.35s;
+}
+
+.btn-primary{
+  background:var(--cyan);
+  color:#000;
+}
+
+.btn-primary:hover{
+  transform:translateY(-4px);
+  box-shadow:0 0 20px rgba(0,229,255,.6);
+}
+
+.btn-secondary{
+  border:1px solid rgba(255,255,255,.1);
+  color:white;
+  background:rgba(255,255,255,.04);
+}
+
+.btn-secondary:hover{
+  background:rgba(255,255,255,.08);
+}
+
+.signal-card{
+  position:absolute;
+  right:5%;
+  bottom:10%;
+  width:320px;
+  background:rgba(10,10,10,.75);
+  border:1px solid var(--line);
+  backdrop-filter:blur(10px);
+  padding:24px;
+  z-index:2;
+}
+
+.signal-card h3{
+  font-family:'Orbitron';
+  color:var(--cyan);
+  margin-bottom:14px;
+}
+
+.signal-wave{
+  height:70px;
+  background:
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0,229,255,.6) 10%,
+      transparent 20%,
+      rgba(0,229,255,.7) 30%,
+      transparent 40%,
+      rgba(0,229,255,.8) 50%,
+      transparent 60%,
+      rgba(0,229,255,.7) 70%,
+      transparent 80%
+    );
+  background-size:300% 100%;
+  animation:waveMove 5s linear infinite;
+  margin:18px 0;
+}
+
+@keyframes waveMove{
+  from{ background-position:0 0; }
+  to{ background-position:300% 0; }
+}
+
+/* ===============================
+SECTIONS
+=============================== */
+
+section{
+  padding:120px 0;
+}
+
+.container{
+  width:min(1250px,92%);
+  margin:auto;
+}
+
+.section-title{
+  font-family:'Orbitron';
+  font-size:clamp(2rem,5vw,4rem);
+  margin-bottom:20px;
+  text-transform:uppercase;
+}
+
+.section-title span{
+  color:var(--cyan);
+}
+
+.section-text{
+  max-width:820px;
+  color:var(--muted);
+  line-height:1.9;
+  margin-bottom:60px;
+}
+
+/* ===============================
+STATS
+=============================== */
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:24px;
+}
+
+.stat{
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  padding:35px;
+  text-align:center;
+  transition:.3s;
+}
+
+.stat:hover{
+  transform:translateY(-6px);
+  border-color:rgba(0,229,255,.25);
+}
+
+.stat h3{
+  font-family:'Orbitron';
+  font-size:2.5rem;
+  color:var(--cyan);
+}
+
+.stat p{
+  margin-top:10px;
+  color:var(--muted);
+  letter-spacing:1px;
+  text-transform:uppercase;
+  font-size:.82rem;
+}
+
+/* ===============================
+CASE GRID
+=============================== */
+
+.grid-cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:25px;
+}
+
+.card{
+  position:relative;
+  overflow:hidden;
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  padding:34px;
+  transition:.4s;
+}
+
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(
+    135deg,
+    rgba(0,229,255,.08),
+    transparent 60%
+  );
+  opacity:0;
+  transition:.4s;
+}
+
+.card:hover::before{
+  opacity:1;
+}
+
+.card:hover{
+  transform:translateY(-8px);
+  border-color:rgba(0,229,255,.35);
+}
+
+.card h3{
+  font-family:'Orbitron';
+  margin-bottom:16px;
+  color:var(--cyan);
+}
+
+.card p{
+  color:var(--muted);
+  line-height:1.8;
+}
+
+/* ===============================
+ABOUT
+=============================== */
+
+.about{
+  background:rgba(255,255,255,.02);
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+
+.about-grid{
+  display:grid;
+  grid-template-columns:1fr 420px;
+  gap:50px;
+  align-items:center;
+}
+
+.about p{
+  color:var(--muted);
+  line-height:1.9;
+  margin-bottom:22px;
+}
+
+.highlight-box{
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+  padding:34px;
+  position:relative;
+}
+
+.highlight-box::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(
+    to bottom right,
+    rgba(0,229,255,.08),
+    transparent
+  );
+}
+
+.highlight-box h3{
+  position:relative;
+  font-family:'Orbitron';
+  color:var(--cyan);
+  margin-bottom:20px;
+}
+
+.highlight-box p{
+  position:relative;
+}
+
+/* ================= HOST PROFILES ================= */
+
+.host-img{
+  width:100%;
+  height:220px;
+  background-size:cover;
+  background-position:center;
+  border:1px solid var(--line);
+  margin-bottom:15px;
+}
+
+/* ===============================
+CTA
+=============================== */
+
+.cta{
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+
+.cta::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.7), rgba(0,0,0,.95)),
+    url("https://images.unsplash.com/photo-1516321497487-e288fb19713f?q=80&w=1800&auto=format&fit=crop")
+    center/cover;
+  animation:heroZoom 16s linear infinite alternate;
+}
+
+.cta .container{
+  position:relative;
+  z-index:2;
+}
+
+.cta h2{
+  font-family:'Orbitron';
+  font-size:clamp(2rem,6vw,5rem);
+  margin-bottom:24px;
+  text-transform:uppercase;
+}
+
+.cta p{
+  color:#d1d5db;
+  margin-bottom:40px;
+  font-size:1.1rem;
+}
+
+/* ===============================
+FOOTER
+=============================== */
+
+footer{
+  border-top:1px solid var(--line);
+  padding:40px;
+  text-align:center;
+  color:var(--muted);
+  background:#050505;
+}
+
+/* ===============================
+RESPONSIVE
+=============================== */
+
+@media(max-width:980px){
+
+  .signal-card{
+    display:none;
+  }
+
+  .about-grid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media(max-width:760px){
+
+  .nav{
+    height:auto;
+    padding:18px 0;
+    flex-direction:column;
+    gap:18px;
+  }
+
+  .hero{
+    text-align:center;
+  }
+
+  .hero-buttons{
+    justify-content:center;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="noise"></div>
+<div class="grid"></div>
+
+<!-- ===============================
+INTRO
+=============================== -->
+
+<div id="intro">
+
+  <div class="intro-bg"></div>
+
+  <div class="scan"></div>
+
+  <div class="intro-center">
+
+    <div class="intro-logo">
+      BONDED<span>INMYSTERY</span>
+    </div>
+
+    <div class="loading-wrap">
+
+      <div class="loading-bar">
+        <span></span>
+      </div>
+
+      <div class="loading-text" id="loadingText">
+        ACCESSING CASE FILES...
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ===============================
+HEADER
+=============================== -->
+
+<header>
+
+  <div class="nav">
+
+    <div class="logo">
+      BONDED<span>INMYSTERY</span>
+    </div>
+
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="archive.html">Archives</a>
+      <a href="investigation.html">Investigations</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="liveradio.html">Live Radio</a>
+    </div>
+
+  </div>
+
+</header>
+
+<!-- ===============================
+HERO
+=============================== -->
+
+<section class="hero">
+
+  <div class="hero-overlay"></div>
+
+  <div class="hero-content">
+
+    <div class="hero-tag">
+      REAL CASE FILES • PARANORMAL INVESTIGATIONS • RIEHLE HOME
+    </div>
+
+    <h1>
+      ENTER THE
+      <span>UNKNOWN</span>
+    </h1>
+
+    <p>
+      A cinematic investigative audio podcast exploring missing persons,
+      paranormal encounters, UFO sightings, cryptids, conspiracy theories,
+      and unsolved mysteries from around the world.
+    </p>
+
+    <div class="hero-buttons">
+      <a href="#listen" class="btn btn-primary">
+        Start Listening
+      </a>
+
+      <a href="archive.html" class="btn btn-secondary">
+        Explore Archives
+      </a>
+    </div>
+
+  </div>
+
+  <div class="signal-card">
+
+    <h3>LIVE CASE NODE</h3>
+
+    <p>
+      An unidentified forest transmission was captured moments before
+      a disappearance. The signal has never been fully decoded.
+    </p>
+
+    <div class="signal-wave"></div>
+
+    <p style="font-size:.8rem; color:var(--gold); letter-spacing:2px;">
+      STATUS: ACTIVE
+    </p>
+
+  </div>
+
+</section>
+
+<!-- ===============================
+STATS
+=============================== -->
+
+<section>
+
+  <div class="container">
+
+    <div class="stats">
+
+      <div class="stat">
+        <h3>0</h3>
+        <p>Active Cases</p>
+      </div>
+
+      <div class="stat">
+        <h3>0</h3>
+        <p>Archived Reports</p>
+      </div>
+
+      <div class="stat">
+        <h3>∞</h3>
+        <p>Theories Explored</p>
+      </div>
+
+      <div class="stat">
+        <h3>24/7</h3>
+        <p>Curiosity Level</p>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ===============================
+CASE FILES
+=============================== -->
+
+<section id="listen">
+
+  <div class="container">
+
+    <h2 class="section-title">
+      CASE <span>FILES</span>
+    </h2>
+
+    <p class="section-text">
+      Deep-dive investigations covering strange disappearances,
+      unexplained phenomena, legendary creatures, UFO encounters,
+      haunted locations, and historical mysteries.
+    </p>
+
+    <div class="grid-cards">
+
+      <div class="card">
+        <h3>Missing Persons</h3>
+
+        <p>
+          Disappearances with conflicting timelines,
+          unexplained evidence, and unanswered questions.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Paranormal Activity</h3>
+
+        <p>
+          Hauntings, shadow figures, EVP recordings,
+          cursed locations, and unexplained encounters.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>UFO Encounters</h3>
+
+        <p>
+          Classified sightings, aerial anomalies,
+          military reports, and witness testimony.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Cryptid Reports</h3>
+
+        <p>
+          Strange creatures, folklore legends,
+          and sightings lacking scientific explanation.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ===============================
+ABOUT
+=============================== -->
+
+<section class="about">
+
+  <div class="container about-grid">
+
+    <div>
+
+      <h2 class="section-title">
+        ABOUT THE <span>INVESTIGATORS</span>
+      </h2>
+
+      <p>
+        <strong>Jonathan Riehle</strong> is a mystery enthusiast and
+        independent researcher focused on unexplained stories,
+        archived reports, and unsolved investigations explored
+        from a home-based perspective.
+      </p>
+
+      <p>
+        <strong>Jennifer Riehle</strong> serves as co-host and
+        research partner — helping compare theories,
+        analyze evidence, and challenge assumptions
+        through open-ended discussion.
+      </p>
+
+      <p>
+        <em>Bonded in Mystery</em> is not a professional investigation agency.
+        It is a curiosity-driven podcast project built around conversation,
+        exploration, and the search for answers hidden within the unknown.
+      </p>
+
+    </div>
+
+    <div class="highlight-box">
+
+      <h3>DISCUSSION FORMAT</h3>
+
+      <p>
+        Every case is explored through conversation,
+        theory comparison, archived evidence,
+        witness testimony, and speculative debate.
+      </p>
+
+      <p>
+        No claims are presented as definitive fact —
+        only possibilities, interpretations,
+        and the ongoing pursuit of understanding.
+      </p>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ===============================
+HOST PROFILE SYSTEM
+=============================== -->
+
+<section>
+  <div class="container">
+
+    <h2 class="section-title">
+      HOST <span>PROFILES</span>
+    </h2>
+
+    <p class="section-text">
+      A deeper look into the investigators behind Bonded in Mystery — their specialties, interests, and what drives their search into the unknown.
+    </p>
+
+    <div class="grid-cards">
+
+      <!-- ================= JONATHAN ================= -->
+      <div class="card">
+
+        <div class="host-img"
+          style="background-image:url('images/jon.jpg?q=80&w=1200&auto=format&fit=crop');">
+        </div>
+
+        <h3>Jonathan Riehle</h3>
+
+        <p style="color:var(--cyan); font-size:.85rem; letter-spacing:1px; margin-bottom:10px;">
+          LEAD INVESTIGATOR
+        </p>
+
+        <p>
+          Jonathan focuses on structured case analysis, connecting patterns between missing persons, UFO encounters, and unexplained historical reports.
+        </p>
+
+        <hr style="border:0;border-top:1px solid var(--line);margin:15px 0;">
+
+        <p><strong style="color:var(--cyan);">Favorite Mysteries:</strong></p>
+        <p style="color:var(--muted); font-size:.9rem;">
+          • Dyatlov Pass Incident<br>
+          • The Rendlesham Forest UFO case<br>
+          • Missing 411 disappearances<br>
+          • The Mothman sightings
+        </p>
+
+        <p style="margin-top:10px;"><strong style="color:var(--cyan);">Investigation Strengths:</strong></p>
+        <p style="color:var(--muted); font-size:.9rem;">
+          Pattern recognition • Timeline reconstruction • Evidence correlation
+        </p>
+
+        <p style="margin-top:10px;"><strong style="color:var(--cyan);">Fears / Limits:</strong></p>
+        <p style="color:var(--muted); font-size:.9rem;">
+          Deep Water • Deep forest isolation • Cases with no physical evidence
+        </p>
+
+      </div>
+
+      <!-- ================= JENNIFER ================= -->
+      <div class="card">
+
+        <div class="host-img"
+          style="background-image:url('images/jen.jpg?q=80&w=1200&auto=format&fit=crop');">
+        </div>
+
+        <h3>Jennifer Riehle</h3>
+
+        <p style="color:var(--cyan); font-size:.85rem; letter-spacing:1px; margin-bottom:10px;">
+          CO-INVESTIGATOR / ANALYST
+        </p>
+
+        <p>
+          Jennifer brings grounded analysis, emotional interpretation, and skepticism to balance theory-driven investigations.
+        </p>
+
+        <hr style="border:0;border-top:1px solid var(--line);margin:15px 0;">
+
+        <p><strong style="color:var(--cyan);">Favorite Mysteries:</strong></p>
+        <p style="color:var(--muted); font-size:.9rem;">
+          • The Salem Witch Trials anomalies<br>
+          • Skinwalker Ranch reports<br>
+          • UFO abduction testimonies<br>
+          • The Black Eyed Children phenomenon
+        </p>
+
+        <p style="margin-top:10px;"><strong style="color:var(--cyan);">Investigation Strengths:</strong></p>
+        <p style="color:var(--muted); font-size:.9rem;">
+          Behavioral analysis • Witness credibility evaluation • Emotional pattern detection
+        </p>
+
+        <p style="margin-top:10px;"><strong style="color:var(--cyan);">Fears / Limits:</strong></p>
+        <p style="color:var(--muted); font-size:.9rem;">
+          Deep psychological case immersion • Claustrophobic environments • Unverified witness trauma loops
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- ===============================
+CTA
+=============================== -->
+
+<section class="cta">
+
+  <div class="container">
+
+    <h2>
+      EVERY MYSTERY
+      LEAVES A TRACE
+    </h2>
+
+    <p>
+      New investigations every week. Follow the evidence.
+    </p>
+
+    <a href="investigation.html" class="btn btn-primary">
+      Begin Investigation
+    </a>
+
+  </div>
+
+</section>
+
+<!-- ===============================
+FOOTER
+=============================== -->
+
+<footer>
+  © 2026 Bonded in Mystery — Investigating the Unknown Together
+</footer>
+
+<!-- ===============================
+SCRIPT
+=============================== -->
+
+<script>
+
+const loadingMessages = [
+  "ACCESSING CASE FILES...",
+  "SCANNING ARCHIVES...",
+  "DECODING TRANSMISSIONS...",
+  "SEARCHING MISSING PERSON DATABASE...",
+  "OPENING INVESTIGATION NODE...",
+  "ENTERING THE UNKNOWN..."
+];
+
+let i = 0;
+
+const loadingText = document.getElementById("loadingText");
+
+const interval = setInterval(() => {
+
+  i++;
+
+  if(i < loadingMessages.length){
+    loadingText.textContent = loadingMessages[i];
+  }
+
+}, 900);
+
+setTimeout(() => {
+  clearInterval(interval);
+}, 5500);
+
+/* PARALLAX EFFECT */
+
+window.addEventListener("mousemove", (e) => {
+
+  const x = (window.innerWidth / 2 - e.clientX) / 40;
+  const y = (window.innerHeight / 2 - e.clientY) / 40;
+
+  document.querySelector(".hero-content").style.transform =
+    `translate(${x}px, ${y}px)`;
+
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,825 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Bonded in Mystery // Investigations</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#050505;
+  --panel:#0c0c0c;
+  --line:rgba(255,255,255,.08);
+
+  --cyan:#00e5ff;
+  --cyan2:#0099ff;
+
+  --gold:#ffc857;
+  --red:#ff4d4d;
+
+  --text:#f5f5f5;
+  --muted:#9ca3af;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html{
+  scroll-behavior:smooth;
+}
+
+body{
+  background:
+    radial-gradient(circle at top, rgba(0,229,255,.08), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(0,153,255,.08), transparent 35%),
+    linear-gradient(to bottom,#020202,#050505 50%,#020202);
+
+  color:var(--text);
+  font-family:Inter,sans-serif;
+  overflow-x:hidden;
+}
+
+/* BACKGROUND GRID */
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+
+  background-image:
+    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+
+  background-size:40px 40px;
+
+  opacity:.25;
+  pointer-events:none;
+  z-index:-1;
+}
+
+/* HEADER */
+
+header{
+  position:fixed;
+  top:0;
+  width:100%;
+  z-index:1000;
+
+  background:rgba(0,0,0,.65);
+  backdrop-filter:blur(16px);
+
+  border-bottom:1px solid var(--line);
+}
+
+.nav{
+  width:min(1400px,92%);
+  margin:auto;
+
+  height:82px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+
+.logo{
+  font-family:Orbitron;
+  font-size:1.2rem;
+  font-weight:900;
+  letter-spacing:3px;
+}
+
+.logo span{
+  color:var(--cyan);
+}
+
+.nav-links{
+  display:flex;
+  gap:18px;
+}
+
+.nav-links a{
+  text-decoration:none;
+  color:var(--muted);
+
+  font-size:.78rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+
+  transition:.3s;
+}
+
+.nav-links a:hover{
+  color:var(--cyan);
+}
+
+.search{
+  width:260px;
+
+  padding:12px 14px;
+
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line);
+
+  color:white;
+  outline:none;
+}
+
+.search:focus{
+  border-color:var(--cyan);
+  box-shadow:0 0 15px rgba(0,229,255,.25);
+}
+
+/* HERO */
+
+.hero{
+  padding-top:160px;
+  padding-bottom:70px;
+
+  width:min(1400px,92%);
+  margin:auto;
+}
+
+.hero-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:30px;
+  flex-wrap:wrap;
+}
+
+.hero h1{
+  font-family:Orbitron;
+  font-size:clamp(3rem,8vw,6rem);
+  line-height:1;
+}
+
+.hero h1 span{
+  color:var(--cyan);
+}
+
+.hero p{
+  margin-top:18px;
+  max-width:700px;
+  color:var(--muted);
+  line-height:1.7;
+}
+
+/* STATS */
+
+.stats{
+  display:flex;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-top:35px;
+}
+
+.stat{
+  min-width:180px;
+
+  padding:18px;
+
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+}
+
+.stat h2{
+  font-family:Orbitron;
+  color:var(--cyan);
+  font-size:2rem;
+}
+
+.stat p{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:.85rem;
+}
+
+/* FILTERS */
+
+.filters{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:40px;
+}
+
+.filter-btn{
+  padding:12px 16px;
+
+  border:1px solid var(--line);
+
+  background:transparent;
+  color:white;
+
+  cursor:pointer;
+
+  font-size:.75rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+
+  transition:.3s;
+}
+
+.filter-btn:hover{
+  border-color:var(--cyan);
+}
+
+.filter-btn.active{
+  background:rgba(0,229,255,.1);
+  border-color:var(--cyan);
+  color:var(--cyan);
+}
+
+/* MAIN */
+
+.container{
+  width:min(400px,92%);
+  margin:auto;
+  padding-bottom:120px;
+}
+
+/* GRID */
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:24px;
+}
+
+/* CARD */
+
+.card{
+  position:relative;
+
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--line);
+
+  overflow:hidden;
+
+  transition:.4s;
+}
+
+.card:hover{
+  transform:translateY(-8px);
+  border-color:var(--cyan);
+
+  box-shadow:0 0 35px rgba(0,229,255,.15);
+}
+
+.card img{
+  width:100%;
+  height:380px;
+  object-fit:cover;
+}
+
+.card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+
+  background:linear-gradient(to top, rgba(0,0,0,.95), transparent 55%);
+  pointer-events:none;
+}
+
+.card-content{
+  position:absolute;
+  bottom:0;
+  left:0;
+  width:100%;
+  z-index:2;
+
+  padding:24px;
+}
+
+.case-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.tag{
+  color:var(--gold);
+  font-size:.72rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+
+.status{
+  font-size:.72rem;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.unsolved{
+  color:var(--red);
+}
+
+.coming{
+  color:var(--cyan);
+}
+
+.card h3{
+  margin-top:14px;
+
+  font-family:Orbitron;
+  font-size:1.4rem;
+}
+
+.description{
+  margin-top:10px;
+
+  color:var(--muted);
+  line-height:1.6;
+  font-size:.92rem;
+}
+
+.meta{
+  display:flex;
+  justify-content:space-between;
+
+  margin-top:16px;
+
+  color:#d1d5db;
+  font-size:.78rem;
+}
+
+.btn-row{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+}
+
+.btn{
+  flex:1;
+
+  padding:12px;
+
+  text-align:center;
+  text-decoration:none;
+
+  border:1px solid var(--cyan);
+
+  color:var(--cyan);
+
+  font-size:.78rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+
+  transition:.3s;
+}
+
+.btn:hover{
+  background:var(--cyan);
+  color:black;
+}
+
+/* LIVE TRANSMISSION */
+
+.live{
+  margin-top:70px;
+
+  border:1px solid var(--line);
+
+  background:
+    linear-gradient(135deg,
+    rgba(0,229,255,.08),
+    rgba(0,0,0,.7));
+
+  overflow:hidden;
+}
+
+.live-top{
+  padding:24px;
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+
+  flex-wrap:wrap;
+}
+
+.live-title{
+  font-family:Orbitron;
+  font-size:1.2rem;
+  letter-spacing:2px;
+}
+
+.signal{
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  color:#22c55e;
+  font-size:.8rem;
+  font-weight:700;
+}
+
+.dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:#22c55e;
+
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  0%{opacity:1;}
+  50%{opacity:.3;}
+  100%{opacity:1;}
+}
+
+.live-desc{
+  padding:0 24px 24px;
+  color:var(--muted);
+  line-height:1.7;
+}
+
+.live-btn{
+  width:100%;
+
+  padding:22px;
+
+  border:none;
+
+  background:linear-gradient(90deg,var(--cyan),var(--cyan2));
+
+  color:black;
+
+  font-family:Orbitron;
+  font-size:1rem;
+  font-weight:900;
+  letter-spacing:3px;
+
+  cursor:pointer;
+
+  transition:.3s;
+}
+
+.live-btn:hover{
+  filter:brightness(1.1);
+  box-shadow:0 0 35px rgba(0,229,255,.45);
+}
+
+/* FOOTER */
+
+footer{
+  border-top:1px solid var(--line);
+  padding:40px 20px;
+
+  text-align:center;
+
+  color:var(--muted);
+  font-size:.85rem;
+}
+
+/* MOBILE */
+
+@media(max-width:900px){
+
+  .nav{
+    height:auto;
+    padding:18px 0;
+    flex-direction:column;
+  }
+
+  .search{
+    width:100%;
+  }
+
+  .hero-top{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+  <div class="nav">
+
+    <div class="logo">
+      BONDED<span>INMYSTERY</span>
+    </div>
+
+    <input
+      type="text"
+      id="searchInput"
+      class="search"
+      placeholder="Search investigations..."
+    >
+
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="archive.html">Archive</a>
+      <a href="investigations.html">Investigations</a>
+      <a href="evidence.html">Evidence</a>
+      <a href="liveradio.html">Live Radio</a>
+    </div>
+
+  </div>
+
+</header>
+
+<!-- HERO -->
+
+<section class="hero">
+
+  <div class="hero-top">
+
+    <div>
+      <h1>
+        ACTIVE
+        <span>INVESTIGATIONS</span>
+      </h1>
+
+      <p>
+        Explore missing persons cases, unexplained disappearances,
+        paranormal events, classified investigations, and the world's
+        most haunting mysteries.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="stats">
+
+    <div class="stat">
+      <h2 id="caseCount">01</h2>
+      <p>Open Cases</p>
+    </div>
+
+    <div class="stat">
+      <h2>24/7</h2>
+      <p>Live Monitoring</p>
+    </div>
+
+    <div class="stat">
+      <h2>GLOBAL</h2>
+      <p>Investigation Network</p>
+    </div>
+
+  </div>
+
+  <div class="filters" id="filters"></div>
+
+</section>
+
+<!-- MAIN -->
+
+<section class="container">
+
+  <div class="grid" id="grid"></div>
+
+  <!-- LIVE -->
+
+  <div class="live">
+
+    <div class="live-top">
+
+      <div>
+        <div class="live-title">
+          LIVE TRANSMISSION
+        </div>
+      </div>
+
+      <div class="signal">
+        <div class="dot"></div>
+        SIGNAL DETECTED
+      </div>
+
+    </div>
+
+    <div class="live-desc">
+      Unknown encrypted transmission originating from an isolated region.
+      Audio distortion detected. Investigation team currently analyzing signal.
+    </div>
+
+    <button class="live-btn" id="liveBtn">
+      ▶ START TRANSMISSION
+    </button>
+
+  </div>
+
+</section>
+
+<footer>
+  © 2026 Bonded in Mystery // CrowRules Entertainment
+</footer>
+
+<script>
+
+/* CASE DATABASE */
+
+const cases = [
+
+  {
+    title:"Amelia Earhart",
+    category:"Missing Persons",
+    status:"COMING SOON",
+    img:"images/001.png",
+    episode:"001",
+    duration:"?? Min",
+    year:"1937",
+    description:"The disappearance of aviation pioneer Amelia Earhart remains one of history's greatest unsolved mysteries.",
+    link:"cases/001.html"
+  }
+
+];
+
+/* ELEMENTS */
+
+const grid = document.getElementById("grid");
+const filtersEl = document.getElementById("filters");
+const searchInput = document.getElementById("searchInput");
+const caseCount = document.getElementById("caseCount");
+
+let activeFilter = "All";
+let searchTerm = "";
+
+/* SEARCH */
+
+searchInput.addEventListener("input", e => {
+  searchTerm = e.target.value.toLowerCase();
+  render();
+});
+
+/* FILTERS */
+
+function categories(){
+  return ["All", ...new Set(cases.map(c => c.category))];
+}
+
+function renderFilters(){
+
+  filtersEl.innerHTML = "";
+
+  categories().forEach(cat => {
+
+    const button = document.createElement("button");
+
+    button.className =
+      "filter-btn" +
+      (cat === activeFilter ? " active" : "");
+
+    button.textContent = cat;
+
+    button.onclick = () => {
+      activeFilter = cat;
+      renderFilters();
+      render();
+    };
+
+    filtersEl.appendChild(button);
+
+  });
+
+}
+
+/* RENDER */
+
+function render(){
+
+  grid.innerHTML = "";
+
+  const filtered = cases.filter(c => {
+
+    return (
+      (activeFilter === "All" || c.category === activeFilter)
+      &&
+      (
+        !searchTerm ||
+        c.title.toLowerCase().includes(searchTerm)
+      )
+
+    );
+
+  });
+
+  caseCount.textContent =
+    String(filtered.length).padStart(2,"0");
+
+  filtered.forEach(c => {
+
+    const card = document.createElement("div");
+
+    card.className = "card";
+
+    card.innerHTML = `
+
+      <img src="${c.img}" alt="${c.title}">
+
+      <div class="card-content">
+
+        <div class="case-top">
+
+          <div class="tag">
+            ${c.category}
+          </div>
+
+          <div class="status ${
+            c.status === "UNSOLVED"
+            ? "unsolved"
+            : "coming"
+          }">
+            ${c.status}
+          </div>
+
+        </div>
+
+        <h3>${c.title}</h3>
+
+        <div class="description">
+          ${c.description}
+        </div>
+
+        <div class="meta">
+          <span>EP ${c.episode}</span>
+          <span>${c.duration}</span>
+          <span>${c.year}</span>
+        </div>
+
+        <div class="btn-row">
+
+          <a class="btn" href="${c.link}">
+            OPEN FILE
+          </a>
+
+          <a class="btn" href="${c.link}">
+            PLAY EPISODE
+          </a>
+
+        </div>
+
+      </div>
+
+    `;
+
+    card.onclick = () => {
+      window.location = c.link;
+    };
+
+    grid.appendChild(card);
+
+  });
+
+}
+
+/* LIVE TRANSMISSION */
+
+const liveBtn = document.getElementById("liveBtn");
+
+let live = false;
+
+liveBtn.onclick = () => {
+
+  live = !live;
+
+  if(live){
+
+    liveBtn.innerHTML =
+      "❚❚ TRANSMISSION ACTIVE";
+
+  }else{
+
+    liveBtn.innerHTML =
+      "▶ START TRANSMISSION";
+
+  }
+
+};
+
+/* INIT */
+
+renderFilters();
+render();
+
+</script>
+
+</body>
+</html>
+```

@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bonded in Mystery // Evidence Intelligence OS</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+:root{
+  --bg:#06070b;
+  --panel:#0f131b;
+  --panel2:#121824;
+  --line:#232c3d;
+  --blue:#4da3ff;
+  --red:#ff4747;
+  --amber:#ffb84d;
+  --green:#4dff88;
+  --purple:#b07dff;
+  --text:#f1f4ff;
+  --muted:#8892a7;
+}
+
+body{
+  background:radial-gradient(circle at top,#101726 0%,#06070b 55%);
+  color:var(--text);
+  font-family:Inter,sans-serif;
+  overflow:hidden;
+}
+
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.02),
+      rgba(255,255,255,0.02) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  pointer-events:none;
+  opacity:.12;
+  animation:flicker 5s infinite;
+}
+
+@keyframes flicker{
+  0%,100%{opacity:.1;}
+  50%{opacity:.14;}
+}
+
+header{
+  height:68px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 20px;
+  background:rgba(8,10,16,.92);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(18px);
+}
+
+.logo{
+  font-family:Orbitron;
+  font-size:20px;
+  font-weight:800;
+  letter-spacing:2px;
+}
+
+.logo span{
+  color:var(--blue);
+}
+
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.live-dot{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:var(--red);
+  box-shadow:0 0 12px var(--red);
+  animation:pulse 1.5s infinite;
+}
+
+@keyframes pulse{
+  0%,100%{transform:scale(1);opacity:1;}
+  50%{transform:scale(1.3);opacity:.5;}
+}
+
+button{
+  background:linear-gradient(180deg,#182131,#111722);
+  border:1px solid #29344b;
+  color:white;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:600;
+  transition:.25s;
+}
+
+button:hover{
+  border-color:var(--blue);
+  box-shadow:0 0 15px rgba(77,163,255,.25);
+  transform:translateY(-2px);
+}
+
+#layout{
+  display:grid;
+  grid-template-columns:340px 1fr 400px;
+  height:calc(100vh - 68px);
+}
+
+.panel{
+  background:rgba(12,16,24,.85);
+  backdrop-filter:blur(20px);
+}
+
+#sidebar{
+  border-right:1px solid var(--line);
+  overflow-y:auto;
+  padding:18px;
+}
+
+#analysis{
+  border-left:1px solid var(--line);
+  overflow-y:auto;
+  padding:18px;
+}
+
+.section-title{
+  font-family:Orbitron;
+  font-size:13px;
+  letter-spacing:2px;
+  color:var(--blue);
+  margin-bottom:14px;
+}
+
+.search-box,
+.filter-box{
+  width:100%;
+  margin-bottom:12px;
+  background:#111722;
+  border:1px solid #26324a;
+  color:white;
+  padding:12px;
+  border-radius:12px;
+}
+
+.feed{
+  background:linear-gradient(180deg,#121927,#0d131d);
+  border:1px solid #26324a;
+  border-radius:18px;
+  padding:14px;
+  margin-bottom:20px;
+}
+
+.feed-item{
+  font-size:12px;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  color:#cfd8ea;
+}
+
+.feed-item:last-child{
+  border-bottom:none;
+}
+
+.case-card{
+  background:linear-gradient(180deg,#131b28,#0f151f);
+  border:1px solid #243046;
+  border-radius:18px;
+  padding:14px;
+  margin-bottom:14px;
+  cursor:pointer;
+  transition:.25s;
+  position:relative;
+  overflow:hidden;
+}
+
+.case-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(130deg,rgba(77,163,255,.08),transparent 40%);
+  opacity:0;
+  transition:.25s;
+}
+
+.case-card:hover::before{
+  opacity:1;
+}
+
+.case-card:hover{
+  transform:translateY(-3px);
+  border-color:var(--blue);
+  box-shadow:0 0 25px rgba(77,163,255,.2);
+}
+
+.case-title{
+  font-family:Orbitron;
+  font-size:15px;
+  margin-top:8px;
+}
+
+.case-tags{
+  color:var(--muted);
+  font-size:11px;
+}
+
+.classified{
+  display:inline-block;
+  margin-top:10px;
+  font-size:10px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(255,71,71,.15);
+  border:1px solid rgba(255,71,71,.35);
+  color:#ff8f8f;
+}
+
+#main{
+  position:relative;
+  overflow:hidden;
+}
+
+#map{
+  position:absolute;
+  inset:0;
+  z-index:1;
+}
+
+#overlay-ui{
+  position:absolute;
+  inset:0;
+  z-index:999;
+  pointer-events:none;
+}
+
+.radar{
+  position:absolute;
+  width:900px;
+  height:900px;
+  border-radius:50%;
+  border:1px solid rgba(77,163,255,.08);
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+}
+
+.radar::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  background:conic-gradient(from 0deg,rgba(77,163,255,.45),transparent 25%);
+  animation:rotate 7s linear infinite;
+}
+
+@keyframes rotate{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
+
+.topbar{
+  position:absolute;
+  top:18px;
+  left:18px;
+  display:flex;
+  gap:12px;
+  pointer-events:auto;
+}
+
+.hud{
+  background:rgba(11,15,24,.9);
+  border:1px solid #253149;
+  border-radius:18px;
+  padding:12px 14px;
+  min-width:170px;
+  backdrop-filter:blur(16px);
+}
+
+.hud-title{
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:2px;
+  margin-bottom:6px;
+}
+
+.hud-value{
+  font-family:Orbitron;
+  font-size:20px;
+}
+
+.bottom-panel{
+  position:absolute;
+  bottom:18px;
+  left:18px;
+  right:18px;
+  height:180px;
+  background:rgba(11,15,24,.92);
+  border:1px solid #253149;
+  border-radius:22px;
+  padding:18px;
+  overflow:auto;
+  backdrop-filter:blur(20px);
+  pointer-events:auto;
+}
+
+.timeline{
+  display:flex;
+  gap:18px;
+  min-width:max-content;
+}
+
+.timeline-event{
+  min-width:220px;
+  background:linear-gradient(180deg,#141c29,#101620);
+  border:1px solid #26324a;
+  border-radius:18px;
+  padding:14px;
+}
+
+.timeline-time{
+  color:var(--blue);
+  font-family:Orbitron;
+  font-size:12px;
+  margin-bottom:10px;
+}
+
+.timeline-text{
+  font-size:13px;
+  color:#dbe4f7;
+}
+
+.analysis-card{
+  background:linear-gradient(180deg,#131b28,#0e141d);
+  border:1px solid #26324a;
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:16px;
+}
+
+.analysis-card h3{
+  font-family:Orbitron;
+  font-size:13px;
+  margin-bottom:12px;
+  color:var(--blue);
+}
+
+.meter{
+  height:10px;
+  border-radius:999px;
+  background:#1a2233;
+  overflow:hidden;
+  margin-top:10px;
+}
+
+.fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--red),var(--amber),var(--green));
+}
+
+.evidence-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.evidence-card{
+  background:#111723;
+  border:1px solid #243149;
+  border-radius:16px;
+  overflow:hidden;
+}
+
+.evidence-image{
+  height:120px;
+  background:linear-gradient(135deg,#1d2a3f,#101722);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:Orbitron;
+  color:rgba(255,255,255,.2);
+}
+
+.evidence-meta{
+  padding:12px;
+}
+
+.evidence-meta h4{
+  font-size:13px;
+  margin-bottom:8px;
+}
+
+.probability{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+  font-size:12px;
+}
+
+.log{
+  font-size:12px;
+  color:#b7c0d3;
+  margin-bottom:10px;
+}
+
+.reconstruct-btn{
+  width:100%;
+  margin-top:14px;
+  padding:14px;
+  font-family:Orbitron;
+  letter-spacing:2px;
+  background:linear-gradient(90deg,#163761,#0f223b);
+}
+
+::-webkit-scrollbar{
+  width:8px;
+}
+
+::-webkit-scrollbar-thumb{
+  background:#22304a;
+  border-radius:999px;
+}
+
+@media(max-width:1400px){
+  #layout{
+    grid-template-columns:300px 1fr;
+  }
+
+  #analysis{
+    display:none;
+  }
+}
+
+@media(max-width:900px){
+  #layout{
+    grid-template-columns:1fr;
+  }
+
+  #sidebar{
+    display:none;
+  }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🧠 <span>BONDED IN MYSTERY</span> // EVIDENCE OS</div>
+
+  <div class="header-right">
+    <div class="live-dot"></div>
+    <button onclick="toggleHeat()">RADAR LAYER</button>
+    <button onclick="reconstruct()">RECONSTRUCT EVENT</button>
+  </div>
+</header>
+
+<div id="layout">
+
+  <aside id="sidebar" class="panel">
+
+    <div class="section-title">INVESTIGATION SEARCH</div>
+
+    <input id="search" class="search-box" placeholder="Search evidence...">
+    <input id="tag" class="filter-box" placeholder="Filter classification...">
+
+    <div class="feed">
+      <div class="section-title">LIVE INTEL FEED</div>
+      <div id="feed"></div>
+    </div>
+
+    <div class="section-title">ACTIVE CASES</div>
+
+    <div id="cases"></div>
+
+  </aside>
+
+  <main id="main">
+
+    <div id="map"></div>
+
+    <div id="overlay-ui">
+
+      <div class="radar"></div>
+
+      <div class="topbar">
+
+        <div class="hud">
+          <div class="hud-title">SIGNAL STRENGTH</div>
+          <div class="hud-value">87%</div>
+        </div>
+
+        <div class="hud">
+          <div class="hud-title">ACTIVE ANOMALIES</div>
+          <div class="hud-value">12</div>
+        </div>
+
+        <div class="hud">
+          <div class="hud-title">AI CONFIDENCE</div>
+          <div class="hud-value">74%</div>
+        </div>
+
+      </div>
+
+      <div class="bottom-panel">
+
+        <div class="section-title">TIMELINE RECONSTRUCTION</div>
+
+        <div class="timeline" id="timeline"></div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <aside id="analysis" class="panel">
+
+    <div class="section-title">AI ANALYSIS</div>
+
+    <div id="analysisContent"></div>
+
+  </aside>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet.heat.js"></script>
+
+<script>
+
+const CASES = [
+{
+  id:"earhart",
+  title:"Amelia Earhart",
+  year:1937,
+  coords:[1.37,173.15],
+  tags:["Aviation","Historical","Disappearance"],
+  confidence:45,
+  summary:"Vanished during around-the-world flight attempt.",
+  timeline:[
+    "10:00 PM — Final departure confirmed",
+    "02:14 AM — Weak radio transmission detected",
+    "02:43 AM — Navigation uncertainty reported",
+    "03:00 AM — Signal lost over Pacific"
+  ],
+  evidence:[
+    "Last Known Photograph",
+    "Radio Transcript",
+    "Pacific Flight Map",
+    "Recovered Distress Notes"
+  ],
+  theories:[
+    {name:"Ocean Impact",score:68},
+    {name:"Navigation Failure",score:57},
+    {name:"Island Landing",score:32}
+  ]
+},
+{
+  id:"mh370",
+  title:"MH370",
+  year:2014,
+  coords:[8.78,93.50],
+  tags:["Aviation","Modern","Disappearance"],
+  confidence:35,
+  summary:"Commercial aircraft disappeared over Indian Ocean.",
+  timeline:[
+    "01:19 AM — Last communication received",
+    "01:21 AM — Transponder disabled",
+    "02:22 AM — Military radar contact lost",
+    "08:19 AM — Final satellite ping"
+  ],
+  evidence:[
+    "Satellite Arc Analysis",
+    "Radar Data",
+    "Cockpit Simulation",
+    "Debris Field Scan"
+  ],
+  theories:[
+    {name:"Controlled Diversion",score:61},
+    {name:"Mechanical Failure",score:39},
+    {name:"Ocean Impact",score:74}
+  ]
+},
+{
+  id:"roanoke",
+  title:"Roanoke Colony",
+  year:1587,
+  coords:[35.93,-75.71],
+  tags:["Historical","Disappearance"],
+  confidence:50,
+  summary:"Entire colony vanished with little evidence.",
+  timeline:[
+    "1587 — Colony established",
+    "Supply delays reported",
+    "Governor returns from England",
+    "Settlement abandoned"
+  ],
+  evidence:[
+    "CROATOAN Carving",
+    "Historical Maps",
+    "Colonial Records",
+    "Archaeological Dig"
+  ],
+  theories:[
+    {name:"Assimilation",score:72},
+    {name:"Relocation",score:51},
+    {name:"Conflict",score:44}
+  ]
+}
+];
+
+const map = L.map('map',{zoomControl:false}).setView([20,0],2);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© OpenStreetMap'
+}).addTo(map);
+
+let markers=[];
+let heat;
+
+function renderCases(){
+
+  const search = document.getElementById('search').value.toLowerCase();
+  const tag = document.getElementById('tag').value.toLowerCase();
+
+  const wrap = document.getElementById('cases');
+  wrap.innerHTML='';
+
+  markers.forEach(m=>map.removeLayer(m));
+  markers=[];
+
+  CASES.filter(c=>{
+    return (
+      c.title.toLowerCase().includes(search) ||
+      c.summary.toLowerCase().includes(search)
+    ) && (!tag || c.tags.join(' ').toLowerCase().includes(tag));
+  }).forEach(c=>{
+
+    const card=document.createElement('div');
+    card.className='case-card';
+
+    card.innerHTML=`
+      <div class="case-tags">${c.tags.join(' • ')}</div>
+      <div class="case-title">${c.title}</div>
+      <div class="case-tags">${c.year}</div>
+      <div class="classified">CONFIDENTIAL</div>
+    `;
+
+    card.onclick=()=>openCase(c);
+
+    wrap.appendChild(card);
+
+    const marker=L.circleMarker(c.coords,{
+      radius:8,
+      color:getColor(c.tags),
+      fillOpacity:.7,
+      weight:2
+    }).addTo(map);
+
+    marker.on('click',()=>openCase(c));
+
+    markers.push(marker);
+
+  });
+}
+
+function openCase(c){
+
+  map.setView(c.coords,5);
+
+  document.getElementById('timeline').innerHTML = c.timeline.map(t=>`
+    <div class="timeline-event">
+      <div class="timeline-time">EVENT</div>
+      <div class="timeline-text">${t}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('analysisContent').innerHTML=`
+
+    <div class="analysis-card">
+      <h3>CASE FILE</h3>
+      <div class="log">${c.summary}</div>
+
+      <div class="meter">
+        <div class="fill" style="width:${c.confidence}%"></div>
+      </div>
+
+      <div class="log">AI Confidence Level: ${c.confidence}%</div>
+    </div>
+
+    <div class="analysis-card">
+      <h3>AI HYPOTHESES</h3>
+
+      ${c.theories.map(t=>`
+        <div class="probability">
+          <span>${t.name}</span>
+          <span>${t.score}%</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="analysis-card">
+      <h3>EVIDENCE DATABASE</h3>
+
+      <div class="evidence-grid">
+
+        ${c.evidence.map(e=>`
+          <div class="evidence-card">
+            <div class="evidence-image">CLASSIFIED</div>
+            <div class="evidence-meta">
+              <h4>${e}</h4>
+              <div class="log">Integrity Verified</div>
+            </div>
+          </div>
+        `).join('')}
+
+      </div>
+
+    </div>
+
+    <div class="analysis-card">
+      <h3>CONTRADICTION SCAN</h3>
+
+      <div class="log">⚠ Timeline inconsistencies detected.</div>
+      <div class="log">⚠ Missing intelligence window discovered.</div>
+      <div class="log">⚠ Unverified witness statement conflict.</div>
+
+      <button class="reconstruct-btn" onclick="reconstruct()">
+        🧠 RECONSTRUCT EVENT
+      </button>
+
+    </div>
+
+  `;
+}
+
+function getColor(tags){
+  if(tags.includes('Aviation')) return '#4da3ff';
+  if(tags.includes('Historical')) return '#b07dff';
+  return '#ff4747';
+}
+
+function toggleHeat(){
+
+  if(heat){
+    map.removeLayer(heat);
+    heat=null;
+    return;
+  }
+
+  heat=L.heatLayer(
+    CASES.map(c=>[c.coords[0],c.coords[1],0.5]),
+    {
+      radius:35,
+      blur:30
+    }
+  ).addTo(map);
+}
+
+function reconstruct(){
+
+  const phrases=[
+    'REBUILDING ENVIRONMENTAL CONDITIONS...',
+    'ANALYZING RADAR SIGNATURES...',
+    'COMPARING WITNESS TESTIMONIES...',
+    'GENERATING AI PROBABILITY MODEL...',
+    'SIMULATION COMPLETE.'
+  ];
+
+  let i=0;
+
+  const interval=setInterval(()=>{
+
+    document.querySelector('.hud-value').innerText=Math.floor(Math.random()*100)+'%';
+
+    if(i>=phrases.length){
+      clearInterval(interval);
+      return;
+    }
+
+    console.log(phrases[i]);
+    i++;
+
+  },700);
+}
+
+function liveFeed(){
+
+  const feed=document.getElementById('feed');
+
+  const logs=[
+    '⚠ Radar anomaly detected in Pacific sector.',
+    '📡 Archived signal recovered from database.',
+    '🧠 AI identified correlation between case files.',
+    '🔒 Restricted document decrypted successfully.',
+    '🛰 Ocean current simulation updated.',
+    '⚠ Timeline contradiction discovered.'
+  ];
+
+  feed.innerHTML='';
+
+  logs.sort(()=>Math.random()-0.5).slice(0,5).forEach(l=>{
+
+    const div=document.createElement('div');
+    div.className='feed-item';
+    div.innerText=l;
+    feed.appendChild(div);
+
+  });
+}
+
+setInterval(liveFeed,5000);
+
+liveFeed();
+renderCases();
+openCase(CASES[0]);
+
+search.oninput=renderCases;
+tag.oninput=renderCases;
+
+</script>
+
+</body>
+</html>
