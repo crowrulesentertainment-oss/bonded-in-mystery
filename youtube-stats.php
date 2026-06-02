@@ -1,121 +1,147 @@
-<?php
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>YouTube Live Stats Overlay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-header("Content-Type: application/json");
-header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Pragma: no-cache");
-header("Expires: 0");
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
 
-$API_KEY = "AIzaSyBAK7ltFPFDX-k0FjBMnKzf0pq_WSJGhGY";
-$CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
+<style>
+body {
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+    font-family: 'Orbitron', sans-serif;
+}
 
-/* =========================
-   CURL HELPER (ROBUST)
-========================= */
-function getJson($url) {
+/* MAIN BAR */
+.stats-bar {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    gap: 18px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(8px);
+    color: white;
+    align-items: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+}
 
-    $ch = curl_init();
+/* ITEM */
+.stat {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    min-width: 110px;
+}
 
-    curl_setopt_array($ch, [
-        CURLOPT_URL => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 4,
-        CURLOPT_CONNECTTIMEOUT => 2,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_SSL_VERIFYPEER => true,
-        CURLOPT_HTTPHEADER => [
-            "Cache-Control: no-cache"
-        ]
-    ]);
+.label {
+    font-size: 10px;
+    opacity: 0.7;
+    letter-spacing: 1px;
+}
 
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+.value {
+    font-size: 18px;
+    font-weight: 700;
+}
 
-    if ($httpCode !== 200 || !$response) {
-        return null;
+/* LIVE BADGE */
+.live {
+    background: red;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* SUBTLE ANIMATION */
+.fade {
+    transition: all 0.4s ease;
+}
+</style>
+</head>
+
+<body>
+
+<div class="stats-bar">
+
+    <div class="live" id="liveStatus">OFFLINE</div>
+
+    <div class="stat">
+        <div class="label">SUBSCRIBERS</div>
+        <div class="value fade" id="subs">0</div>
+    </div>
+
+    <div class="stat">
+        <div class="label">LIVE VIEWERS</div>
+        <div class="value fade" id="viewers">0</div>
+    </div>
+
+    <div class="stat">
+        <div class="label">PEAK</div>
+        <div class="value fade" id="peak">0</div>
+    </div>
+
+</div>
+
+<script>
+const API_URL = "youtube.php"; // your PHP endpoint
+
+let lastData = {};
+
+/* FORMAT NUMBER */
+function format(n) {
+    return n.toLocaleString();
+}
+
+/* UPDATE UI */
+function updateUI(data) {
+
+    if (!data) return;
+
+    document.getElementById("subs").textContent = format(data.subscribers || 0);
+    document.getElementById("viewers").textContent = format(data.liveViewers || 0);
+    document.getElementById("peak").textContent = format(data.peakViewers || 0);
+
+    const status = document.getElementById("liveStatus");
+    status.textContent = data.isLive ? "LIVE" : "OFFLINE";
+    status.style.background = data.isLive ? "red" : "gray";
+
+    lastData = data;
+}
+
+/* FETCH DATA */
+async function fetchStats() {
+    try {
+        const res = await fetch(API_URL + "?t=" + Date.now(), {
+            cache: "no-store"
+        });
+
+        const data = await res.json();
+        updateUI(data);
+
+    } catch (err) {
+        console.log("Fetch error:", err);
     }
-
-    $json = json_decode($response, true);
-    return is_array($json) ? $json : null;
 }
 
-/* =========================
-   SUBSCRIBERS (ALWAYS FRESH)
-   - NEVER trust local cache alone
-   - cache only as fallback safety
-========================= */
-$subsFile = "subs.json";
-$cachedSubs = file_exists($subsFile) ? (int)file_get_contents($subsFile) : 0;
+/* LOOP (SAFE QUOTA FRIENDLY) */
+fetchStats();
+setInterval(fetchStats, 5000); // 5s refresh (safe for quota)
+</script>
 
-/* ALWAYS fetch fresh */
-$channelUrl = "https://www.googleapis.com/youtube/v3/channels?part=statistics&id={$CHANNEL_ID}&key={$API_KEY}";
-$channelData = getJson($channelUrl);
-
-$subs = $cachedSubs; // fallback
-
-if (!empty($channelData['items'][0]['statistics']['subscriberCount'])) {
-
-    $apiSubs = (int)$channelData['items'][0]['statistics']['subscriberCount'];
-
-    // ONLY update if valid AND not zero AND reasonable
-    if ($apiSubs > 0) {
-        $subs = $apiSubs;
-        file_put_contents($subsFile, $subs, LOCK_EX);
-    }
-}
-
-/* =========================
-   LIVE DETECTION (IMPROVED)
-========================= */
-$videoId = null;
-$isLive = false;
-
-/* better endpoint: videos.list via search (cleaner) */
-$searchUrl = "https://www.googleapis.com/youtube/v3/search?part=id&type=video&eventType=live&channelId={$CHANNEL_ID}&maxResults=1&key={$API_KEY}";
-$searchData = getJson($searchUrl);
-
-if (!empty($searchData['items'][0]['id']['videoId'])) {
-    $videoId = $searchData['items'][0]['id']['videoId'];
-    $isLive = true;
-}
-
-/* =========================
-   LIVE VIEWERS
-========================= */
-$liveViewers = 0;
-
-if ($videoId) {
-
-    $videoUrl = "https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id={$videoId}&key={$API_KEY}";
-    $videoData = getJson($videoUrl);
-
-    if (!empty($videoData['items'][0]['liveStreamingDetails']['concurrentViewers'])) {
-        $liveViewers = (int)$videoData['items'][0]['liveStreamingDetails']['concurrentViewers'];
-    }
-}
-
-/* =========================
-   PEAK VIEWERS (SAFE UPDATE)
-========================= */
-$peakFile = "peak.json";
-$peak = file_exists($peakFile) ? (int)file_get_contents($peakFile) : 0;
-
-/* only update when valid live session */
-if ($liveViewers > $peak && $liveViewers > 0) {
-    $peak = $liveViewers;
-    file_put_contents($peakFile, $peak, LOCK_EX);
-}
-
-/* =========================
-   FINAL OUTPUT
-========================= */
-echo json_encode([
-    "subscribers" => $subs,
-    "liveViewers" => $liveViewers,
-    "peakViewers" => $peak,
-    "videoId" => $videoId,
-    "isLive" => $isLive,
-    "status" => $isLive ? "LIVE" : "OFFLINE"
-]);
-
-?>
+</body>
+</html>
