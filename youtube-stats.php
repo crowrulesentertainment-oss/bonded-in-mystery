@@ -8,9 +8,9 @@ header("Expires: 0");
 $API_KEY = "AIzaSyBAK7ltFPFDX-k0FjBMnKzf0pq_WSJGhGY";
 $CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
 
-/* -------------------------
-   FAST CURL REQUEST
---------------------------*/
+/* =========================
+   CURL HELPER (ROBUST)
+========================= */
 function getJson($url) {
 
     $ch = curl_init();
@@ -18,78 +18,70 @@ function getJson($url) {
     curl_setopt_array($ch, [
         CURLOPT_URL => $url,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 3,
-        CURLOPT_CONNECTTIMEOUT => 1,
+        CURLOPT_TIMEOUT => 4,
+        CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_HTTPHEADER => [
             "Cache-Control: no-cache"
         ]
     ]);
 
     $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    if (!$response) return [];
+    if ($httpCode !== 200 || !$response) {
+        return null;
+    }
 
     $json = json_decode($response, true);
-    return is_array($json) ? $json : [];
+    return is_array($json) ? $json : null;
 }
 
-/* -------------------------
-   SUBSCRIBERS (STABLE CACHE)
---------------------------*/
+/* =========================
+   SUBSCRIBERS (ALWAYS FRESH)
+   - NEVER trust local cache alone
+   - cache only as fallback safety
+========================= */
 $subsFile = "subs.json";
-$subs = file_exists($subsFile) ? (int)file_get_contents($subsFile) : 0;
+$cachedSubs = file_exists($subsFile) ? (int)file_get_contents($subsFile) : 0;
 
+/* ALWAYS fetch fresh */
 $channelUrl = "https://www.googleapis.com/youtube/v3/channels?part=statistics&id={$CHANNEL_ID}&key={$API_KEY}";
 $channelData = getJson($channelUrl);
 
+$subs = $cachedSubs; // fallback
+
 if (!empty($channelData['items'][0]['statistics']['subscriberCount'])) {
 
-    $newSubs = (int)$channelData['items'][0]['statistics']['subscriberCount'];
+    $apiSubs = (int)$channelData['items'][0]['statistics']['subscriberCount'];
 
-    if ($newSubs > 0) {
-        $subs = $newSubs;
-        file_put_contents($subsFile, $subs);
+    // ONLY update if valid AND not zero AND reasonable
+    if ($apiSubs > 0) {
+        $subs = $apiSubs;
+        file_put_contents($subsFile, $subs, LOCK_EX);
     }
 }
 
-/* -------------------------
-   LIVE VIDEO DETECTION (FIXED)
---------------------------*/
+/* =========================
+   LIVE DETECTION (IMPROVED)
+========================= */
 $videoId = null;
+$isLive = false;
 
-$searchUrl = "https://www.googleapis.com/youtube/v3/search?part=id,snippet&channelId={$CHANNEL_ID}&eventType=live&type=video&order=date&maxResults=5&key={$API_KEY}";
+/* better endpoint: videos.list via search (cleaner) */
+$searchUrl = "https://www.googleapis.com/youtube/v3/search?part=id&type=video&eventType=live&channelId={$CHANNEL_ID}&maxResults=1&key={$API_KEY}";
 $searchData = getJson($searchUrl);
 
-/* find ACTIVE live broadcast */
-if (!empty($searchData['items'])) {
-    foreach ($searchData['items'] as $item) {
-
-        if (!empty($item['id']['videoId'])) {
-
-            $vid = $item['id']['videoId'];
-
-            /* confirm it's actually live */
-            if (
-                isset($item['snippet']['liveBroadcastContent']) &&
-                $item['snippet']['liveBroadcastContent'] === "live"
-            ) {
-                $videoId = $vid;
-                break;
-            }
-
-            /* fallback candidate */
-            if (!$videoId) {
-                $videoId = $vid;
-            }
-        }
-    }
+if (!empty($searchData['items'][0]['id']['videoId'])) {
+    $videoId = $searchData['items'][0]['id']['videoId'];
+    $isLive = true;
 }
 
-/* -------------------------
-   LIVE VIEWERS FETCH (SAFE)
---------------------------*/
+/* =========================
+   LIVE VIEWERS
+========================= */
 $liveViewers = 0;
 
 if ($videoId) {
@@ -98,29 +90,32 @@ if ($videoId) {
     $videoData = getJson($videoUrl);
 
     if (!empty($videoData['items'][0]['liveStreamingDetails']['concurrentViewers'])) {
-
         $liveViewers = (int)$videoData['items'][0]['liveStreamingDetails']['concurrentViewers'];
     }
 }
 
-/* -------------------------
-   PEAK VIEWERS (NO RESET BUG)
---------------------------*/
+/* =========================
+   PEAK VIEWERS (SAFE UPDATE)
+========================= */
 $peakFile = "peak.json";
 $peak = file_exists($peakFile) ? (int)file_get_contents($peakFile) : 0;
 
-/* only update when valid + higher */
+/* only update when valid live session */
 if ($liveViewers > $peak && $liveViewers > 0) {
     $peak = $liveViewers;
-    file_put_contents($peakFile, $peak);
+    file_put_contents($peakFile, $peak, LOCK_EX);
 }
 
-/* -------------------------
+/* =========================
    FINAL OUTPUT
---------------------------*/
+========================= */
 echo json_encode([
     "subscribers" => $subs,
     "liveViewers" => $liveViewers,
     "peakViewers" => $peak,
-    "videoId" => $videoId
+    "videoId" => $videoId,
+    "isLive" => $isLive,
+    "status" => $isLive ? "LIVE" : "OFFLINE"
 ]);
+
+?>
