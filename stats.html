@@ -19,14 +19,12 @@ body{
     position:absolute;
     top:10px;
     right:10px;
-
     display:flex;
     align-items:center;
     gap:10px;
 }
 
 /* LIVE DOT */
-
 .live-dot{
     width:7px;
     height:7px;
@@ -44,29 +42,19 @@ body{
 }
 
 /* BLOCKS */
-
 .block{
     display:flex;
     align-items:baseline;
     gap:5px;
-
     padding:6px 10px;
     background:rgba(0,0,0,0.88);
     border:1px solid rgba(255,255,255,0.10);
     border-radius:999px;
-
     backdrop-filter: blur(8px);
 }
 
-.label{
-    font-size:9px;
-    color:#aaa;
-}
-
-.value{
-    font-size:12px;
-    font-weight:700;
-}
+.label{ font-size:9px; color:#aaa; }
+.value{ font-size:12px; font-weight:700; }
 
 .viewers{color:#00ff88;}
 .peak{color:#ffb300;}
@@ -153,20 +141,13 @@ body{
 
 const GOAL = 1000;
 
-/* Your stats endpoint (subs/peak/live viewers) */
+/* ONLY SAFE BACKEND ENDPOINT */
 const STATS_API =
 "https://crowrulesentertainment-oss.github.io/bonded-in-mystery/youtube-stats.php";
 
-/* YouTube API (LIVE STATUS ONLY) */
-const YT_API_KEY = "YOUR_YOUTUBE_API_KEY";
-const CHANNEL_ID = "YOUR_CHANNEL_ID";
-
 let lastLiveState = "unknown";
 
-/* =======================
-   ANIMATION
-======================= */
-
+/* ANIMATION */
 function animate(el, target){
     let start = parseFloat(el.dataset.val || 0);
     let diff = target - start;
@@ -188,10 +169,7 @@ function animate(el, target){
     }, 30);
 }
 
-/* =======================
-   FETCH STATS
-======================= */
-
+/* FETCH STATS FROM YOUR PHP */
 async function fetchStats(){
     try{
         const res = await fetch(STATS_API + "?t=" + Date.now());
@@ -202,33 +180,7 @@ async function fetchStats(){
     }
 }
 
-/* =======================
-   YOUTUBE LIVE STATUS CHECK
-======================= */
-
-async function fetchLiveStatus(){
-
-    try{
-        const url =
-`https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${CHANNEL_ID}&key=${YT_API_KEY}`;
-
-        const res = await fetch(url);
-        const data = await res.json();
-
-        const status = data.items?.[0]?.snippet?.liveBroadcastContent;
-
-        // live | upcoming | none
-        return status || "unknown";
-
-    } catch(e){
-        return "unknown";
-    }
-}
-
-/* =======================
-   APPLY STATS
-======================= */
-
+/* APPLY STATS */
 function applyStats(data){
 
     const live = data.liveViewers || 0;
@@ -248,49 +200,31 @@ function applyStats(data){
         GOAL.toLocaleString();
 }
 
-/* =======================
-   STATUS UI
-======================= */
-
-function applyLiveState(state){
+/* LIVE STATE (FROM PHP ONLY - NO YOUTUBE KEY HERE) */
+function applyLiveState(data){
 
     const dot = document.getElementById("dot");
     const status = document.getElementById("status");
 
     dot.classList.remove("off","upcoming");
 
-    if(state === "live"){
+    if(data.isLive){
         status.textContent = "LIVE";
-        dot.classList.remove("off");
-    }
-    else if(state === "upcoming"){
-        status.textContent = "UPCOMING";
-        dot.classList.add("upcoming");
-    }
-    else{
+    } else {
         status.textContent = "OFFLINE";
         dot.classList.add("off");
     }
-
-    lastLiveState = state;
 }
 
-/* =======================
-   MAIN LOOP
-======================= */
-
+/* MAIN LOOP */
 async function update(){
 
-    const [stats, liveState] = await Promise.all([
-        fetchStats(),
-        fetchLiveStatus()
-    ]);
+    const stats = await fetchStats();
 
     if(stats){
         applyStats(stats);
+        applyLiveState(stats);
     }
-
-    applyLiveState(liveState);
 
 }
 
