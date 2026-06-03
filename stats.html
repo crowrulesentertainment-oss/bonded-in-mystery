@@ -3,22 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Entertainment Dashboard V5</title>
+<title>CrowRules Entertainment Dashboard V6</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 
 :root{
-    --bg:rgba(0,0,0,.55);
-    --border:rgba(255,255,255,.12);
+    --bg:rgba(0,0,0,0.88);
+    --panel:rgba(10,10,12,0.88);
+    --border:rgba(255,255,255,0.10);
+
     --live:#00ff88;
-    --offline:#ff5555;
-    --subs:#00d9ff;
-    --goal:#ffb300;
+    --offline:#ff4d4d;
+    --subs:#00e5ff;
+    --goal:#ffcc66;
     --text:#ffffff;
 }
 
+/* RESET */
 *{
     margin:0;
     padding:0;
@@ -31,51 +34,81 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
+/* MAIN DASHBOARD */
 #dashboard{
     position:absolute;
     top:15px;
     right:15px;
+
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:8px;
     flex-wrap:wrap;
+
+    padding:6px;
+    border-radius:14px;
+
+    background:rgba(0,0,0,0.25);
 }
 
-/* PANELS */
+/* DARK READABLE BUTTON PANELS */
 .panel{
-    background:var(--bg);
+    background:var(--panel);
     border:1px solid var(--border);
-    backdrop-filter:blur(18px);
-    border-radius:14px;
+    border-radius:12px;
+
     padding:8px 12px;
+
     display:flex;
     align-items:center;
     gap:6px;
+
+    box-shadow:
+        0 6px 18px rgba(0,0,0,0.65),
+        inset 0 0 0 1px rgba(255,255,255,0.03);
 }
 
+/* TEXT */
 .label{
     font-size:9px;
-    color:#888;
     letter-spacing:1px;
+    color:#cfcfcf;
+    opacity:0.9;
 }
 
 .value{
     font-size:13px;
-    font-weight:700;
+    font-weight:800;
     color:var(--text);
+    text-shadow:0 2px 6px rgba(0,0,0,0.85);
 }
 
-.subs{ color:var(--subs); }
-.goal{ color:var(--goal); }
-.live{ color:var(--live); }
+/* COLORS */
+.subs{
+    color:var(--subs);
+    text-shadow:0 0 6px rgba(0,229,255,0.25);
+}
 
+.goal{
+    color:var(--goal);
+    text-shadow:0 0 6px rgba(255,204,102,0.25);
+}
+
+.live{
+    color:var(--live);
+    text-shadow:0 0 6px rgba(0,255,136,0.25);
+}
+
+/* AVATAR */
 #avatar{
     width:44px;
     height:44px;
     border-radius:50%;
     border:2px solid var(--subs);
+    box-shadow:0 0 10px rgba(0,229,255,0.25);
 }
 
+/* STATUS DOT */
 .status-dot{
     width:10px;
     height:10px;
@@ -83,29 +116,40 @@ body{
     animation:pulse 1.5s infinite;
 }
 
-.online{ background:var(--live); }
-.offline{ background:var(--offline); }
+.online{
+    background:var(--live);
+    box-shadow:0 0 10px rgba(0,255,136,0.5);
+}
+
+.offline{
+    background:var(--offline);
+    box-shadow:0 0 10px rgba(255,77,77,0.35);
+}
 
 @keyframes pulse{
     0%,100%{opacity:1;}
-    50%{opacity:.3;}
+    50%{opacity:0.25;}
 }
 
+/* GOAL BAR */
 .goal-wrap{
     width:120px;
     height:7px;
-    background:rgba(255,255,255,.08);
+    background:rgba(0,0,0,0.65);
+    border:1px solid rgba(255,255,255,0.08);
     border-radius:999px;
     overflow:hidden;
 }
 
 .goal-bar{
-    height:100%;
     width:0%;
-    background:linear-gradient(90deg,#00d9ff,#00ff88);
-    transition:width .5s ease;
+    height:100%;
+    background:linear-gradient(90deg,#00e5ff,#00ff88);
+    box-shadow:0 0 10px rgba(0,255,136,0.25);
+    transition:width 0.5s ease;
 }
 
+/* STREAM TITLE */
 #streamTitle{
     max-width:260px;
     white-space:nowrap;
@@ -113,12 +157,13 @@ body{
     text-overflow:ellipsis;
 }
 
+/* ERROR */
 #error{
     position:absolute;
-    bottom:-22px;
+    bottom:-20px;
     right:0;
     font-size:10px;
-    color:#ff5555;
+    color:#ff4d4d;
     display:none;
 }
 
@@ -185,12 +230,11 @@ const CONFIG = {
 };
 
 /* =========================
-   STATE (CRITICAL FIX)
+   STATE (NO BLANK UI EVER)
 ========================= */
 
 let cache = {
-    subs: 0,
-    avatar: ""
+    subs: 0
 };
 
 let viewerStats = {
@@ -199,7 +243,7 @@ let viewerStats = {
 };
 
 /* =========================
-   API CALLS
+   API
 ========================= */
 
 async function fetchChannel(){
@@ -215,13 +259,13 @@ async function fetchLive(){
 }
 
 /* =========================
-   SAFE UI HELPERS
+   SAFE RENDER
 ========================= */
 
-function setSubs(value){
+function setSubs(subs){
     document.getElementById("subs").textContent =
-        value.toLocaleString();
-    cache.subs = value;
+        subs.toLocaleString();
+    cache.subs = subs;
 }
 
 function setGoal(subs){
@@ -254,28 +298,16 @@ async function update(){
 
         const info = channel?.items?.[0];
 
-        /* =========================
-           SUBS (ALWAYS SAFE)
-        ========================= */
-        const subs = Number(
-            info?.statistics?.subscriberCount ?? cache.subs
-        );
-
+        /* SUBS (ALWAYS SAFE) */
+        const subs = Number(info?.statistics?.subscriberCount ?? cache.subs);
         setSubs(subs);
         setGoal(subs);
 
-        /* =========================
-           AVATAR
-        ========================= */
+        /* AVATAR */
         const avatar = info?.snippet?.thumbnails?.default?.url;
-        if(avatar){
-            document.getElementById("avatar").src = avatar;
-            cache.avatar = avatar;
-        }
+        if(avatar) document.getElementById("avatar").src = avatar;
 
-        /* =========================
-           LIVE STATE
-        ========================= */
+        /* LIVE STATE */
         const isLive = (live?.items?.length ?? 0) > 0;
 
         const dot = document.getElementById("dot");
@@ -293,10 +325,7 @@ async function update(){
                 "No Active Stream";
         }
 
-        /* =========================
-           VIEWERS (LIVE ONLY)
-        ========================= */
-
+        /* VIEWERS (LIVE ONLY) */
         const liveItem = live?.items?.[0];
 
         const currentViewers = Number(
@@ -305,21 +334,13 @@ async function update(){
         );
 
         viewerStats.current = currentViewers;
-
         document.getElementById("viewers").textContent =
             viewerStats.current.toLocaleString();
 
-        /* =========================
-           PEAK VIEWERS (SESSION)
-        ========================= */
-
+        /* PEAK VIEWERS */
         if(currentViewers > viewerStats.peak){
             viewerStats.peak = currentViewers;
-
-            localStorage.setItem(
-                "peakViewers",
-                viewerStats.peak
-            );
+            localStorage.setItem("peakViewers", viewerStats.peak);
         }
 
         document.getElementById("peakViewers").textContent =
@@ -327,13 +348,9 @@ async function update(){
 
     }catch(err){
         console.error(err);
-
         errorBox.style.display = "block";
 
-        /* =========================
-           FALLBACK SAFE STATE
-        ========================= */
-
+        /* SAFE FALLBACK */
         setSubs(cache.subs);
         setGoal(cache.subs);
 
@@ -345,10 +362,7 @@ async function update(){
     }
 }
 
-/* =========================
-   START
-========================= */
-
+/* START */
 update();
 setInterval(update, CONFIG.REFRESH);
 
