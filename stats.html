@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CrowRules HUD V3 Dark Panel</title>
+<title>CrowRules HUD V4 Control Panel</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -23,7 +23,7 @@ body{
     font-family:Orbitron, sans-serif;
 }
 
-/* HUD WRAPPER */
+/* HUD */
 #hud{
     position:absolute;
     bottom:25px;
@@ -42,9 +42,16 @@ body{
     border-radius:14px;
 
     box-shadow:0 0 18px rgba(0,0,0,0.6);
+
+    transition:opacity .4s ease;
 }
 
-/* "BUTTON STYLE" STAT BLOCKS */
+/* DIM MODE (inactive stream feel) */
+.dim{
+    opacity:0.55;
+}
+
+/* BUTTON BLOCKS */
 .btn{
     flex:1;
     margin:0 6px;
@@ -78,6 +85,14 @@ body{
     font-weight:800;
     color:var(--accent);
     margin-top:3px;
+
+    transition:transform .25s ease, text-shadow .25s ease;
+}
+
+/* FLASH EFFECT */
+.flash{
+    transform:scale(1.15);
+    text-shadow:0 0 18px var(--accent);
 }
 
 /* DIVIDER */
@@ -88,13 +103,15 @@ body{
     margin:0 6px;
 }
 
-/* SUB GOAL SECTION */
+/* GOAL */
 .goal{
     flex:1.6;
     padding:10px 12px;
+
     background:linear-gradient(180deg,var(--panel),var(--panel2));
     border:1px solid var(--border);
     border-radius:10px;
+
     text-align:center;
 }
 
@@ -175,10 +192,12 @@ let state = {
     viewers: 0,
     peak: 0,
     subs: 0,
+    lastActivity: Date.now(),
     online: true
 };
 
 const el = {
+    hud: document.getElementById("hud"),
     viewers: document.getElementById("viewers"),
     peak: document.getElementById("peak"),
     subs: document.getElementById("subs"),
@@ -202,13 +221,33 @@ function saveCache(){
     }));
 }
 
-/* RENDER ALWAYS */
+/* FLASH EFFECT */
+function flash(id){
+    const node = document.getElementById(id);
+    node.classList.remove("flash");
+    void node.offsetWidth;
+    node.classList.add("flash");
+}
+
+/* SMOOTH NUMBER ANIMATION */
+function animate(from, to, cb, duration=400){
+    const start = performance.now();
+
+    function step(t){
+        const p = Math.min((t-start)/duration,1);
+        cb(Math.floor(from + (to-from)*p));
+        if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+/* RENDER BASE STATE (ALWAYS SAFE) */
 function render(){
     el.subs.innerText = state.subs;
     el.peak.innerText = state.peak;
 
     let percent = (state.subs / CONFIG.goal) * 100;
-    el.bar.style.width = Math.min(percent, 100) + "%";
+    el.bar.style.width = Math.min(percent,100) + "%";
 }
 
 /* FETCH */
@@ -219,31 +258,55 @@ async function fetchStats(){
 
         state.online = true;
         el.status.innerText = "LIVE";
+        el.status.style.color = "#00d4ff";
 
-        el.viewers.innerText = d.viewers;
-        el.subs.innerText = d.subs;
+        state.lastActivity = Date.now();
 
+        /* VIEWERS */
+        if(d.viewers !== state.viewers){
+            animate(state.viewers, d.viewers, v=>{
+                el.viewers.innerText = v;
+            });
+            flash("viewers");
+            state.viewers = d.viewers;
+        }
+
+        /* SUBS (always safe update) */
+        state.subs = d.subs;
+        el.subs.innerText = state.subs;
+
+        /* PEAK */
         if(d.viewers > state.peak){
             state.peak = d.viewers;
             el.peak.innerText = state.peak;
+            flash("peak");
         }
 
-        let percent = (d.subs / CONFIG.goal) * 100;
-        el.bar.style.width = Math.min(percent, 100) + "%";
+        /* GOAL */
+        let percent = (state.subs / CONFIG.goal) * 100;
+        el.bar.style.width = Math.min(percent,100) + "%";
 
         saveCache();
 
     }catch(e){
         state.online = false;
         el.status.innerText = "OFFLINE";
+        el.status.style.color = "#ff4d4d";
         render();
     }
+}
+
+/* IDLE DIM MODE */
+function checkIdle(){
+    const idle = Date.now() - state.lastActivity > 15000;
+    el.hud.classList.toggle("dim", idle);
 }
 
 /* LOOP */
 loadCache();
 fetchStats();
 setInterval(fetchStats, CONFIG.interval);
+setInterval(checkIdle, 3000);
 </script>
 
 </body>
