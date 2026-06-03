@@ -1,211 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>CrowRules HUD V4 Control Panel</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
-
-<style>
-:root{
-    --bg:#0b0f14;
-    --panel:#111826;
-    --panel2:#0f1623;
-    --border:#243244;
-    --text:#d7e1ea;
-    --accent:#00d4ff;
-}
-
-body{
-    margin:0;
-    overflow:hidden;
-    background:transparent;
-    font-family:Orbitron, sans-serif;
-}
-
-/* HUD */
-#hud{
-    position:absolute;
-    bottom:25px;
-    left:50%;
-    transform:translateX(-50%);
-    width:1020px;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:14px 18px;
-
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:14px;
-
-    box-shadow:0 0 18px rgba(0,0,0,0.6);
-
-    transition:opacity .4s ease;
-}
-
-/* DIM MODE (inactive stream feel) */
-.dim{
-    opacity:0.55;
-}
-
-/* BUTTON BLOCKS */
-.btn{
-    flex:1;
-    margin:0 6px;
-    padding:10px 12px;
-
-    background:linear-gradient(180deg,var(--panel),var(--panel2));
-    border:1px solid var(--border);
-    border-radius:10px;
-
-    text-align:center;
-
-    transition:transform .15s ease, border-color .2s ease;
-}
-
-.btn:hover{
-    transform:translateY(-2px);
-    border-color:#2f4158;
-}
-
-/* LABEL */
-.label{
-    font-size:10px;
-    opacity:0.65;
-    letter-spacing:1.3px;
-    color:var(--text);
-}
-
-/* VALUE */
-.value{
-    font-size:20px;
-    font-weight:800;
-    color:var(--accent);
-    margin-top:3px;
-
-    transition:transform .25s ease, text-shadow .25s ease;
-}
-
-/* FLASH EFFECT */
-.flash{
-    transform:scale(1.15);
-    text-shadow:0 0 18px var(--accent);
-}
-
-/* DIVIDER */
-.divider{
-    width:1px;
-    height:45px;
-    background:var(--border);
-    margin:0 6px;
-}
-
-/* GOAL */
-.goal{
-    flex:1.6;
-    padding:10px 12px;
-
-    background:linear-gradient(180deg,var(--panel),var(--panel2));
-    border:1px solid var(--border);
-    border-radius:10px;
-
-    text-align:center;
-}
-
-.bar{
-    width:100%;
-    height:10px;
-    background:#0a111b;
-    border-radius:6px;
-    overflow:hidden;
-    margin-top:6px;
-    border:1px solid var(--border);
-}
-
-.fill{
-    height:100%;
-    width:0%;
-    background:linear-gradient(90deg,#00d4ff,#00ff9d);
-    transition:width .5s ease;
-}
-
-/* STATUS */
-#status{
-    position:absolute;
-    top:6px;
-    right:12px;
-    font-size:9px;
-    opacity:0.45;
-    color:var(--text);
-}
-</style>
-</head>
-
-<body>
-
-<div id="hud">
-
-    <div class="btn">
-        <div class="label">VIEWERS</div>
-        <div class="value" id="viewers">0</div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="btn">
-        <div class="label">PEAK</div>
-        <div class="value" id="peak">0</div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="btn">
-        <div class="label">SUBS</div>
-        <div class="value" id="subs">0</div>
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="goal">
-        <div class="label">SUB GOAL (1,000)</div>
-        <div class="bar">
-            <div class="fill" id="bar"></div>
-        </div>
-    </div>
-
-</div>
-
-<div id="status">LIVE</div>
-
 <script>
 const CONFIG = {
-    api: "https://crowrulesentertainment-oss.github.io/bonded-in-mystery/youtube-stats.php",
+    apiKey: "AIzaSyArQ6fqOxl8jenWZME2z1qwhd8qBNPD0KI",
+    channelId: "UCOSm_4z9LIQUWHOc8yzPgkw",
     goal: 1000,
-    interval: 2500,
-    cacheKey: "crowrules_hud_cache"
+    interval: 5000,
+    cacheKey: "crowrules_hud_safe_v4"
 };
 
+/* STATE = ALWAYS FALLBACK SAFE */
 let state = {
     viewers: 0,
     peak: 0,
     subs: 0,
-    lastActivity: Date.now(),
-    online: true
+    lastGoodSubs: 0,
+    lastGoodViewers: 0,
+    lastUpdate: Date.now()
 };
 
+/* ELEMENTS */
 const el = {
-    hud: document.getElementById("hud"),
     viewers: document.getElementById("viewers"),
     peak: document.getElementById("peak"),
     subs: document.getElementById("subs"),
     bar: document.getElementById("bar"),
-    status: document.getElementById("status")
+    status: document.getElementById("status"),
+    hud: document.getElementById("hud")
 };
 
-/* CACHE */
+/* =========================
+   CACHE SYSTEM (CRITICAL SAFETY)
+========================= */
 function loadCache(){
     const saved = localStorage.getItem(CONFIG.cacheKey);
     if(saved){
@@ -215,99 +39,134 @@ function loadCache(){
 }
 
 function saveCache(){
-    localStorage.setItem(CONFIG.cacheKey, JSON.stringify({
-        subs: state.subs,
-        peak: state.peak
-    }));
+    localStorage.setItem(CONFIG.cacheKey, JSON.stringify(state));
 }
 
-/* FLASH EFFECT */
-function flash(id){
-    const node = document.getElementById(id);
-    node.classList.remove("flash");
-    void node.offsetWidth;
-    node.classList.add("flash");
-}
-
-/* SMOOTH NUMBER ANIMATION */
-function animate(from, to, cb, duration=400){
-    const start = performance.now();
-
-    function step(t){
-        const p = Math.min((t-start)/duration,1);
-        cb(Math.floor(from + (to-from)*p));
-        if(p<1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-}
-
-/* RENDER BASE STATE (ALWAYS SAFE) */
+/* =========================
+   SAFE RENDER (NEVER BREAK UI)
+========================= */
 function render(){
     el.subs.innerText = state.subs;
     el.peak.innerText = state.peak;
+    el.viewers.innerText = state.viewers;
 
-    let percent = (state.subs / CONFIG.goal) * 100;
-    el.bar.style.width = Math.min(percent,100) + "%";
+    const percent = (state.subs / CONFIG.goal) * 100;
+    el.bar.style.width = Math.min(percent, 100) + "%";
 }
 
-/* FETCH */
-async function fetchStats(){
+/* =========================
+   SAFE FETCH WRAPPER
+========================= */
+async function safeFetch(url){
     try{
-        const res = await fetch(CONFIG.api);
-        const d = await res.json();
+        const res = await fetch(url);
+        if(!res.ok) throw new Error("Bad response");
+        return await res.json();
+    }catch(err){
+        return null;
+    }
+}
 
-        state.online = true;
+/* =========================
+   GET SUBSCRIBERS (SAFE)
+========================= */
+async function fetchSubs(){
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CONFIG.channelId}&key=${CONFIG.apiKey}`;
+
+    const data = await safeFetch(url);
+
+    if(data?.items?.[0]?.statistics?.subscriberCount){
+        return parseInt(data.items[0].statistics.subscriberCount);
+    }
+
+    return null;
+}
+
+/* =========================
+   GET LIVE VIEWERS (SAFE)
+========================= */
+async function fetchLiveViewers(){
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${CONFIG.channelId}&eventType=live&type=video&key=${CONFIG.apiKey}`;
+
+    const search = await safeFetch(searchUrl);
+
+    const videoId = search?.items?.[0]?.id?.videoId;
+
+    if(!videoId) return null;
+
+    const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${CONFIG.apiKey}`;
+
+    const video = await safeFetch(videoUrl);
+
+    const viewers = video?.items?.[0]?.liveStreamingDetails?.concurrentViewers;
+
+    return viewers ? parseInt(viewers) : null;
+}
+
+/* =========================
+   UPDATE ENGINE (FAILSAFE CORE)
+========================= */
+async function update(){
+    el.status.innerText = "SYNCING";
+    el.status.style.color = "#00d4ff";
+
+    const [subs, viewers] = await Promise.all([
+        fetchSubs(),
+        fetchLiveViewers()
+    ]);
+
+    /* SUBSCRIBERS (CRITICAL: fallback safe) */
+    if(subs !== null){
+        state.subs = subs;
+        state.lastGoodSubs = subs;
+    } else {
+        state.subs = state.lastGoodSubs;
+    }
+
+    /* VIEWERS (ONLY IF LIVE) */
+    if(viewers !== null){
+        state.viewers = viewers;
+        state.lastGoodViewers = viewers;
+
+        if(viewers > state.peak){
+            state.peak = viewers;
+        }
+
         el.status.innerText = "LIVE";
-        el.status.style.color = "#00d4ff";
-
-        state.lastActivity = Date.now();
-
-        /* VIEWERS */
-        if(d.viewers !== state.viewers){
-            animate(state.viewers, d.viewers, v=>{
-                el.viewers.innerText = v;
-            });
-            flash("viewers");
-            state.viewers = d.viewers;
-        }
-
-        /* SUBS (always safe update) */
-        state.subs = d.subs;
-        el.subs.innerText = state.subs;
-
-        /* PEAK */
-        if(d.viewers > state.peak){
-            state.peak = d.viewers;
-            el.peak.innerText = state.peak;
-            flash("peak");
-        }
-
-        /* GOAL */
-        let percent = (state.subs / CONFIG.goal) * 100;
-        el.bar.style.width = Math.min(percent,100) + "%";
-
-        saveCache();
-
-    }catch(e){
-        state.online = false;
+        el.status.style.color = "#00ff9d";
+    } else {
+        state.viewers = 0;
         el.status.innerText = "OFFLINE";
         el.status.style.color = "#ff4d4d";
+    }
+
+    state.lastUpdate = Date.now();
+
+    render();
+    saveCache();
+}
+
+/* =========================
+   AUTO RECOVERY LOOP
+========================= */
+function recoveryCheck(){
+    const stale = Date.now() - state.lastUpdate > 20000;
+
+    if(stale){
+        state.subs = state.lastGoodSubs;
+        state.viewers = 0;
+        el.status.innerText = "DEGRADED";
+        el.status.style.color = "#ffb300";
         render();
     }
 }
 
-/* IDLE DIM MODE */
-function checkIdle(){
-    const idle = Date.now() - state.lastActivity > 15000;
-    el.hud.classList.toggle("dim", idle);
-}
-
-/* LOOP */
+/* =========================
+   INIT
+========================= */
 loadCache();
-fetchStats();
-setInterval(fetchStats, CONFIG.interval);
-setInterval(checkIdle, 3000);
-</script>
+update();
 
-</body>
-</html>
+setInterval(update, CONFIG.interval);
+setInterval(recoveryCheck, 5000);
+</script>
