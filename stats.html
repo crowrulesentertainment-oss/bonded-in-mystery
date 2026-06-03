@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Dashboard V8</title>
+<title>CrowRules Dashboard V9</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -11,7 +11,7 @@
 
 :root{
     --bg:rgba(0,0,0,0.88);
-    --panel:rgba(10,10,12,0.90);
+    --panel:rgba(10,10,12,0.92);
     --border:rgba(255,255,255,0.10);
 
     --live:#00ff88;
@@ -33,6 +33,7 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
+/* DASHBOARD WRAP */
 #dashboard{
     position:absolute;
     top:15px;
@@ -49,7 +50,7 @@ body{
     background:rgba(0,0,0,0.25);
 }
 
-/* DARK READABLE PANELS */
+/* PANELS (READABLE DARK UI) */
 .panel{
     background:var(--panel);
     border:1px solid var(--border);
@@ -79,6 +80,7 @@ body{
     text-shadow:0 2px 6px rgba(0,0,0,0.85);
 }
 
+/* COLORS */
 .subs{ color:var(--subs); }
 .goal{ color:var(--goal); }
 .live{ color:var(--live); }
@@ -184,7 +186,7 @@ body{
 <script>
 
 /* =========================
-   CONFIG (SAFE FRONTEND INJECTION)
+   CONFIG
 ========================= */
 
 const CONFIG = {
@@ -195,12 +197,11 @@ const CONFIG = {
 };
 
 /* =========================
-   STATE (NO DATA LOSS)
+   STATE (CRITICAL STABILITY LAYER)
 ========================= */
 
 let cache = {
-    subs: 0,
-    lastGoodSubs: 0
+    lastSubs: 0
 };
 
 let viewerStats = {
@@ -209,7 +210,7 @@ let viewerStats = {
 };
 
 /* =========================
-   SAFE FETCH WRAPPER
+   SAFE FETCH
 ========================= */
 
 async function ytFetch(url){
@@ -217,9 +218,7 @@ async function ytFetch(url){
         const res = await fetch(url);
         const data = await res.json();
 
-        if(data?.error){
-            throw new Error(data.error.message);
-        }
+        if(data?.error) throw new Error(data.error.message);
 
         return data;
 
@@ -230,7 +229,7 @@ async function ytFetch(url){
 }
 
 /* =========================
-   API CALLS
+   API
 ========================= */
 
 async function fetchChannel(){
@@ -246,17 +245,19 @@ async function fetchLive(){
 }
 
 /* =========================
-   SUBSCRIBERS (FIXED CORE)
+   SUBSCRIBERS (ALWAYS SAFE)
 ========================= */
 
-function updateSubs(info){
+function renderSubs(channel){
 
-    let subs = cache.lastGoodSubs;
+    let subs = cache.lastSubs;
 
-    if(info?.statistics?.subscriberCount !== undefined){
-        subs = Number(info.statistics.subscriberCount);
-        cache.subs = subs;
-        cache.lastGoodSubs = subs;
+    const apiSubs =
+        channel?.items?.[0]?.statistics?.subscriberCount;
+
+    if(apiSubs !== undefined){
+        subs = Number(apiSubs);
+        cache.lastSubs = subs;
     }
 
     document.getElementById("subs").textContent =
@@ -266,10 +267,10 @@ function updateSubs(info){
 }
 
 /* =========================
-   GOAL
+   GOAL (ALWAYS RENDERS)
 ========================= */
 
-function updateGoal(subs){
+function renderGoal(subs){
 
     const remaining = Math.max(CONFIG.SUB_GOAL - subs, 0);
 
@@ -298,31 +299,29 @@ async function update(){
             fetchLive()
         ]);
 
-        const info = channel?.items?.[0];
+        /* =========================
+           SUBS + GOAL (INDEPENDENT)
+        ========================= */
+        const subs = renderSubs(channel);
+        renderGoal(subs);
 
-        /* SUBS (ROBUST SAFE SYSTEM) */
-        const subs = updateSubs(info);
-        updateGoal(subs);
-
-        /* LIVE STATE */
+        /* =========================
+           LIVE STATE (NO IMPACT ON SUBS)
+        ========================= */
         const isLive = (live?.items?.length ?? 0) > 0;
 
-        const dot = document.getElementById("dot");
-        const status = document.getElementById("liveStatus");
+        document.getElementById("dot").className =
+            "status-dot " + (isLive ? "online" : "offline");
 
-        if(isLive){
-            dot.className = "status-dot online";
-            status.textContent = "LIVE";
-            document.getElementById("streamTitle").textContent =
-                live.items[0].snippet.title;
-        }else{
-            dot.className = "status-dot offline";
-            status.textContent = "OFFLINE";
-            document.getElementById("streamTitle").textContent =
-                "No Active Stream";
-        }
+        document.getElementById("liveStatus").textContent =
+            isLive ? "LIVE" : "OFFLINE";
 
-        /* VIEWERS */
+        document.getElementById("streamTitle").textContent =
+            isLive ? live.items[0].snippet.title : "No Active Stream";
+
+        /* =========================
+           VIEWERS
+        ========================= */
         const liveItem = live?.items?.[0];
 
         const currentViewers = Number(
@@ -331,10 +330,13 @@ async function update(){
         );
 
         viewerStats.current = currentViewers;
+
         document.getElementById("viewers").textContent =
             currentViewers.toLocaleString();
 
-        /* PEAK */
+        /* =========================
+           PEAK VIEWERS
+        ========================= */
         if(currentViewers > viewerStats.peak){
             viewerStats.peak = currentViewers;
             localStorage.setItem("peakViewers", viewerStats.peak);
@@ -347,11 +349,11 @@ async function update(){
         console.error(err);
         errorBox.style.display = "block";
 
-        /* SAFE FALLBACK */
-        document.getElementById("subs").textContent =
-            cache.lastGoodSubs.toLocaleString();
+        /* SAFE FALLBACK (NO UI BREAK) */
+        renderGoal(cache.lastSubs);
 
-        updateGoal(cache.lastGoodSubs);
+        document.getElementById("subs").textContent =
+            cache.lastSubs.toLocaleString();
     }
 }
 
