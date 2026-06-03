@@ -2,29 +2,31 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CrowRules Entertainment - Broadcast Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&display=swap" rel="stylesheet">
+<title>CrowRules Entertainment Dashboard V2</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
 
 <style>
 
 :root{
-    --bg:rgba(0,0,0,.85);
+    --bg:rgba(0,0,0,.55);
     --border:rgba(255,255,255,.12);
     --live:#00ff88;
     --offline:#ff5555;
     --subs:#00d9ff;
-    --peak:#ffb300;
-    --goal:#ff5f7a;
+    --goal:#ffb300;
+    --text:#ffffff;
 }
 
 *{
+    margin:0;
+    padding:0;
     box-sizing:border-box;
 }
 
 body{
-    margin:0;
     background:transparent;
     overflow:hidden;
     font-family:'Orbitron',sans-serif;
@@ -37,110 +39,131 @@ body{
 
     display:flex;
     align-items:center;
-    gap:10px;
+    gap:12px;
 }
 
-/* STATUS */
+.panel{
+    background:var(--bg);
+    border:1px solid var(--border);
+
+    backdrop-filter:blur(20px);
+
+    border-radius:18px;
+
+    padding:10px 14px;
+
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    box-shadow:
+    0 0 20px rgba(0,217,255,.15);
+}
+
+.label{
+    color:#999;
+    font-size:9px;
+    letter-spacing:1px;
+}
+
+.value{
+    font-size:14px;
+    font-weight:700;
+    color:var(--text);
+}
+
+.live{
+    color:var(--live);
+}
+
+.subs{
+    color:var(--subs);
+}
+
+.goal{
+    color:var(--goal);
+}
+
+#avatar{
+    width:48px;
+    height:48px;
+
+    border-radius:50%;
+
+    border:2px solid var(--subs);
+
+    box-shadow:
+    0 0 20px rgba(0,217,255,.4);
+}
 
 .status-dot{
     width:10px;
     height:10px;
     border-radius:50%;
-    background:#777;
-    animation:pulse 1.6s infinite;
+
+    animation:pulse 1.5s infinite;
 }
 
-.status-dot.live{
+.online{
     background:var(--live);
 }
 
-.status-dot.offline{
+.offline{
     background:var(--offline);
 }
 
-.status-dot.error{
-    background:#999;
-}
-
 @keyframes pulse{
-    0%,100%{opacity:1}
-    50%{opacity:.25}
+
+    0%,100%{
+        opacity:1;
+    }
+
+    50%{
+        opacity:.25;
+    }
+
 }
-
-/* PANELS */
-
-.panel{
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:999px;
-    padding:7px 12px;
-
-    display:flex;
-    align-items:baseline;
-    gap:6px;
-
-    backdrop-filter:blur(12px);
-}
-
-.label{
-    font-size:9px;
-    color:#999;
-    letter-spacing:1px;
-}
-
-.value{
-    font-size:13px;
-    font-weight:700;
-}
-
-.live-value{
-    color:var(--live);
-}
-
-.peak-value{
-    color:var(--peak);
-}
-
-.sub-value{
-    color:var(--subs);
-}
-
-.goal-value{
-    color:var(--goal);
-}
-
-/* PROGRESS */
 
 .goal-wrap{
-    width:90px;
-    height:6px;
-    overflow:hidden;
+
+    width:120px;
+    height:8px;
+
+    background:
+    rgba(255,255,255,.08);
+
     border-radius:999px;
-    background:rgba(255,255,255,.08);
-    border:1px solid var(--border);
+
+    overflow:hidden;
 }
 
 .goal-bar{
+
     width:0%;
     height:100%;
-    background:var(--subs);
+
+    background:
+    linear-gradient(
+        90deg,
+        #00d9ff,
+        #00ff88
+    );
+
     transition:width .8s ease;
 }
 
-/* STATUS BOX */
+#streamTitle{
 
-#statusBox{
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:999px;
-    padding:7px 12px;
+    max-width:300px;
 
-    font-size:10px;
-    color:#ccc;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
 }
 
-#updated{
-    opacity:.7;
+#statusBox{
+    color:#ccc;
+    font-size:10px;
 }
 
 </style>
@@ -149,192 +172,237 @@ body{
 
 <div id="dashboard">
 
-    <div id="dot" class="status-dot"></div>
+    <img id="avatar" src="">
+
+    <div class="status-dot offline" id="dot"></div>
 
     <div class="panel">
         <span class="label">LIVE</span>
-        <span id="live" class="value live-value">0</span>
-    </div>
-
-    <div class="panel">
-        <span class="label">PEAK</span>
-        <span id="peak" class="value peak-value">0</span>
+        <span class="value live" id="liveStatus">OFFLINE</span>
     </div>
 
     <div class="panel">
         <span class="label">SUBS</span>
-        <span id="subs" class="value sub-value">0</span>
+        <span class="value subs" id="subs">0</span>
     </div>
 
     <div class="panel">
         <span class="label">GOAL</span>
-        <span id="goalText" class="value goal-value">1000</span>
+        <span class="value goal" id="goalRemaining">1000 LEFT</span>
     </div>
 
     <div class="goal-wrap">
-        <div id="goalBar" class="goal-bar"></div>
+        <div class="goal-bar" id="goalBar"></div>
     </div>
 
-    <div id="statusBox">
-        <span id="status">CONNECTING</span>
-        |
-        <span id="updated">--:--:--</span>
+    <div class="panel">
+        <span class="label">STREAM</span>
+        <span class="value" id="streamTitle">
+            Waiting...
+        </span>
+    </div>
+
+    <div class="panel">
+        <div id="statusBox">
+            UPDATED:
+            <span id="updated">--:--:--</span>
+        </div>
     </div>
 
 </div>
 
 <script>
 
-const API_URL =
-"https://bonded-in-mystery.infinityfree.me/youtube-stats.php";
+const API_KEY =
+"AIzaSyAZ1zjGhtj4pA_hDVsQQzKXnUrcDAkDoWI";
 
-const GOAL = 1000;
-const REFRESH = 10000;
+const CHANNEL_ID =
+"UCOSm_4z9LIQUWHOc8yzPgkw";
 
-let lastData = {};
-let busy = false;
+const SUB_GOAL = 1000;
 
-/* ANIMATION */
+const REFRESH = 30000;
 
-function animateNumber(element, target){
+function animateNumber(element,target){
 
-    const start = Number(element.dataset.value || 0);
-    const duration = 600;
-    const startTime = performance.now();
+    const start =
+    Number(element.dataset.value || 0);
+
+    const duration = 700;
+
+    const startTime =
+    performance.now();
 
     function frame(now){
 
         const progress =
-            Math.min((now - startTime) / duration, 1);
+        Math.min(
+            (now-startTime)/duration,
+            1
+        );
 
-        const current =
-            Math.floor(start + ((target - start) * progress));
+        const value =
+        Math.floor(
+            start +
+            (target-start)*progress
+        );
 
         element.textContent =
-            current.toLocaleString();
+        value.toLocaleString();
 
         if(progress < 1){
+
             requestAnimationFrame(frame);
+
         }else{
-            element.dataset.value = target;
+
+            element.dataset.value =
+            target;
+
         }
+
     }
 
     requestAnimationFrame(frame);
+
 }
 
-/* STATUS */
+async function getChannelData(){
 
-function setStatus(type,text){
+    const response =
+    await fetch(
+`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CHANNEL_ID}&key=${API_KEY}`
+    );
 
-    const dot = document.getElementById("dot");
+    return await response.json();
 
-    dot.className = "status-dot";
-    dot.classList.add(type);
-
-    document.getElementById("status").textContent = text;
 }
 
-/* FETCH */
+async function getLiveData(){
 
-async function fetchStats(){
+    const response =
+    await fetch(
+`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`
+    );
 
-    if(busy) return null;
+    return await response.json();
 
-    busy = true;
+}
+
+async function refreshDashboard(){
 
     try{
 
-        const response = await fetch(
-            API_URL + "?t=" + Date.now(),
-            {
-                cache:"no-store"
-            }
+        const channel =
+        await getChannelData();
+
+        if(!channel.items?.length)
+            return;
+
+        const info =
+        channel.items[0];
+
+        const subscribers =
+        Number(
+            info.statistics.subscriberCount
         );
 
-        const raw = await response.text();
+        animateNumber(
+            document.getElementById("subs"),
+            subscribers
+        );
 
-        if(!raw.trim().startsWith("{")){
-            throw new Error("Invalid JSON");
-        }
+        document.getElementById("avatar").src =
+        info.snippet.thumbnails.default.url;
 
-        const json = JSON.parse(raw);
+        const remaining =
+        Math.max(
+            SUB_GOAL-subscribers,
+            0
+        );
 
-        busy = false;
+        document.getElementById(
+            "goalRemaining"
+        ).textContent =
+        remaining.toLocaleString()
+        +" LEFT";
 
-        return json;
-
-    }catch(error){
-
-        console.error(error);
-
-        busy = false;
-
-        return null;
-    }
-}
-
-/* APPLY */
-
-function updateUI(data){
-
-    if(!data){
-
-        setStatus("error","ERROR");
-
-        return;
-    }
-
-    animateNumber(
-        document.getElementById("live"),
-        data.liveViewers || 0
-    );
-
-    animateNumber(
-        document.getElementById("peak"),
-        data.peakViewers || 0
-    );
-
-    animateNumber(
-        document.getElementById("subs"),
-        data.subscribers || 0
-    );
-
-    const percent =
+        const percent =
         Math.min(
-            ((data.subscribers || 0) / GOAL) * 100,
+            subscribers/SUB_GOAL*100,
             100
         );
 
-    document.getElementById("goalBar").style.width =
-        percent + "%";
+        document.getElementById(
+            "goalBar"
+        ).style.width =
+        percent+"%";
 
-    document.getElementById("goalText").textContent =
-        GOAL.toLocaleString();
+        const live =
+        await getLiveData();
 
-    if(data.isLive){
-        setStatus("live","LIVE");
-    }else{
-        setStatus("offline","OFFLINE");
+        const isLive =
+        live.items &&
+        live.items.length > 0;
+
+        const dot =
+        document.getElementById("dot");
+
+        const status =
+        document.getElementById(
+            "liveStatus"
+        );
+
+        if(isLive){
+
+            dot.className =
+            "status-dot online";
+
+            status.textContent =
+            "LIVE";
+
+            document.getElementById(
+                "streamTitle"
+            ).textContent =
+            live.items[0]
+            .snippet.title;
+
+        }else{
+
+            dot.className =
+            "status-dot offline";
+
+            status.textContent =
+            "OFFLINE";
+
+            document.getElementById(
+                "streamTitle"
+            ).textContent =
+            "No Active Stream";
+
+        }
+
+        document.getElementById(
+            "updated"
+        ).textContent =
+        new Date()
+        .toLocaleTimeString();
+
+    }
+    catch(error){
+
+        console.error(error);
+
     }
 
-    document.getElementById("updated").textContent =
-        new Date().toLocaleTimeString();
-
-    lastData = data;
 }
 
-/* LOOP */
+refreshDashboard();
 
-async function refresh(){
-
-    const data = await fetchStats();
-
-    updateUI(data);
-}
-
-refresh();
-setInterval(refresh, REFRESH);
+setInterval(
+    refreshDashboard,
+    REFRESH
+);
 
 </script>
 
