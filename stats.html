@@ -2,145 +2,255 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>YouTube Stats Bar Overlay</title>
+<title>CrowRules Live Studio V3 HUD</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-body {
-    margin: 0;
-    overflow: hidden;
-    background: transparent;
-    font-family: Orbitron, sans-serif;
+:root{
+    --neon:#00f0ff;
+    --bg:rgba(0,0,0,0.7);
 }
 
-/* MAIN BAR */
-.bar-container {
-    position: absolute;
-    bottom: 25px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 900px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 10px 20px;
-    background: rgba(0,0,0,0.65);
-    border: 1px solid #00f0ff;
-    border-radius: 14px;
-    box-shadow: 0 0 20px rgba(0,240,255,0.35);
-    color: #fff;
+body{
+    margin:0;
+    overflow:hidden;
+    background:transparent;
+    font-family:Orbitron, sans-serif;
 }
 
-/* STAT BLOCKS */
-.stat {
-    text-align: center;
-    flex: 1;
+/* HUD WRAPPER */
+#hud{
+    position:absolute;
+    bottom:25px;
+    left:50%;
+    transform:translateX(-50%);
+    width:1000px;
+    height:72px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:12px 26px;
+
+    background:var(--bg);
+    border:1px solid rgba(0,240,255,0.7);
+    border-radius:16px;
+
+    box-shadow:0 0 28px rgba(0,240,255,0.2);
+    backdrop-filter:blur(8px);
+
+    transition:opacity .4s ease;
 }
 
-.label {
-    font-size: 10px;
-    opacity: 0.7;
-    letter-spacing: 1px;
+.dim{
+    opacity:0.5;
 }
 
-.value {
-    font-size: 18px;
-    font-weight: 700;
-    color: #00f0ff;
+/* BLOCKS */
+.block{
+    flex:1;
+    text-align:center;
+}
+
+.label{
+    font-size:10px;
+    opacity:0.6;
+    letter-spacing:1.5px;
+}
+
+.value{
+    font-size:21px;
+    font-weight:800;
+    color:var(--neon);
+    transition:transform .25s ease, text-shadow .25s ease;
+}
+
+/* FLASH EFFECT */
+.flash{
+    transform:scale(1.15);
+    text-shadow:0 0 18px var(--neon);
 }
 
 /* DIVIDER */
-.divider {
-    width: 1px;
-    height: 35px;
-    background: rgba(255,255,255,0.2);
+.divider{
+    width:1px;
+    height:42px;
+    background:rgba(255,255,255,0.15);
 }
 
-/* SUB BAR WRAPPER */
-.goal-wrap {
-    flex: 1.5;
-    text-align: center;
+/* GOAL SECTION */
+.goal{
+    flex:1.5;
+    text-align:center;
 }
 
-.bar-bg {
-    width: 100%;
-    height: 10px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 5px;
-    overflow: hidden;
-    margin-top: 4px;
+.bar{
+    width:100%;
+    height:10px;
+    background:rgba(255,255,255,0.08);
+    border-radius:6px;
+    overflow:hidden;
+    margin-top:6px;
 }
 
-.bar-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #00f0ff, #00ff88);
-    transition: width 0.5s ease;
+.fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg, #00f0ff, #00ff88);
+    transition:width .5s ease;
+    box-shadow:0 0 12px rgba(0,255,200,0.4);
 }
 </style>
 </head>
 
 <body>
 
-<div class="bar-container">
+<div id="hud">
 
-    <div class="stat">
+    <div class="block">
         <div class="label">VIEWERS</div>
         <div class="value" id="viewers">0</div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="stat">
+    <div class="block">
         <div class="label">PEAK</div>
         <div class="value" id="peak">0</div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="stat">
+    <div class="block">
         <div class="label">SUBS</div>
         <div class="value" id="subs">0</div>
     </div>
 
     <div class="divider"></div>
 
-    <div class="goal-wrap">
+    <div class="goal">
         <div class="label">SUB GOAL (10,000)</div>
-        <div class="bar-bg">
-            <div class="bar-fill" id="bar"></div>
+        <div class="bar">
+            <div class="fill" id="bar"></div>
         </div>
     </div>
 
 </div>
 
 <script>
-let peak = 0;
-const goal = 10000;
+/* =========================
+   CONFIG
+========================= */
+const CONFIG = {
+    api: "https://crowrulestv.x10.mx/youtube-stats.php",
+    goal: 10000,
+    updateRate: 2000,
+    idleTime: 15000
+};
 
-async function updateStats() {
-    const res = await fetch("https://crowrulestv.x10.mx/youtube-stats.php");
-    const data = await res.json();
+/* =========================
+   STATE
+========================= */
+let state = {
+    viewers: 0,
+    peak: 0,
+    lastUpdate: Date.now()
+};
 
-    document.getElementById("viewers").innerText = data.viewers;
-    document.getElementById("subs").innerText = data.subs;
+/* =========================
+   DOM CACHE
+========================= */
+const el = {
+    hud: document.getElementById("hud"),
+    viewers: document.getElementById("viewers"),
+    peak: document.getElementById("peak"),
+    subs: document.getElementById("subs"),
+    bar: document.getElementById("bar")
+};
 
-    if (data.viewers > peak) {
-        peak = data.viewers;
-        document.getElementById("peak").innerText = peak;
-    }
-
-    let percent = (data.subs / goal) * 100;
-    if (percent > 100) percent = 100;
-
-    document.getElementById("bar").style.width = percent + "%";
+/* =========================
+   ANIMATION HELPERS
+========================= */
+function flash(id){
+    const node = document.getElementById(id);
+    node.classList.remove("flash");
+    void node.offsetWidth;
+    node.classList.add("flash");
 }
 
-setInterval(updateStats, 3000);
-updateStats();
+function tweenNumber(from, to, duration, cb){
+    const start = performance.now();
+
+    function step(now){
+        const p = Math.min((now - start) / duration, 1);
+        cb(Math.floor(from + (to - from) * p));
+        if(p < 1) requestAnimationFrame(step);
+    }
+
+    requestAnimationFrame(step);
+}
+
+/* =========================
+   UI UPDATE
+========================= */
+function updateUI(data){
+
+    state.lastUpdate = Date.now();
+
+    /* VIEWERS */
+    if(data.viewers !== state.viewers){
+        tweenNumber(state.viewers, data.viewers, 500, v=>{
+            el.viewers.innerText = v;
+        });
+        flash("viewers");
+        state.viewers = data.viewers;
+    }
+
+    /* SUBS */
+    el.subs.innerText = data.subs;
+
+    /* PEAK */
+    if(data.viewers > state.peak){
+        state.peak = data.viewers;
+        el.peak.innerText = state.peak;
+        flash("peak");
+    }
+
+    /* GOAL BAR */
+    let percent = (data.subs / CONFIG.goal) * 100;
+    el.bar.style.width = Math.min(percent, 100) + "%";
+}
+
+/* =========================
+   FETCH LOOP
+========================= */
+async function fetchStats(){
+    try{
+        const res = await fetch(CONFIG.api);
+        const data = await res.json();
+        updateUI(data);
+    }catch(err){
+        console.log("Fetch error:", err);
+    }
+}
+
+/* =========================
+   IDLE MODE
+========================= */
+function checkIdle(){
+    const idle = Date.now() - state.lastUpdate > CONFIG.idleTime;
+    el.hud.classList.toggle("dim", idle);
+}
+
+/* =========================
+   LOOP START
+========================= */
+setInterval(fetchStats, CONFIG.updateRate);
+setInterval(checkIdle, 3000);
+
+fetchStats();
 </script>
 
 </body>
