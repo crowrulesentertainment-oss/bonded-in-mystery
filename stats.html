@@ -2,260 +2,339 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Broadcast Pro Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CrowRules Entertainment - Broadcast Dashboard</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&display=swap" rel="stylesheet">
 
 <style>
 
+:root{
+    --bg:rgba(0,0,0,.85);
+    --border:rgba(255,255,255,.12);
+    --live:#00ff88;
+    --offline:#ff5555;
+    --subs:#00d9ff;
+    --peak:#ffb300;
+    --goal:#ff5f7a;
+}
+
+*{
+    box-sizing:border-box;
+}
+
 body{
     margin:0;
-    overflow:hidden;
     background:transparent;
+    overflow:hidden;
     font-family:'Orbitron',sans-serif;
 }
 
-/* =========================
-   MAIN BAR
-========================= */
-#bar{
+#dashboard{
     position:absolute;
-    top:10px;
-    right:10px;
+    top:15px;
+    right:15px;
+
     display:flex;
     align-items:center;
     gap:10px;
 }
 
-/* =========================
-   STATUS DOT SYSTEM
-========================= */
-.dot{
-    width:8px;
-    height:8px;
+/* STATUS */
+
+.status-dot{
+    width:10px;
+    height:10px;
     border-radius:50%;
-    background:#888;
-    animation:pulse 1.5s infinite;
+    background:#777;
+    animation:pulse 1.6s infinite;
 }
 
-.dot.live{ background:#00ff88; }
-.dot.off{ background:#ff4444; }
-.dot.error{ background:#999; }
+.status-dot.live{
+    background:var(--live);
+}
+
+.status-dot.offline{
+    background:var(--offline);
+}
+
+.status-dot.error{
+    background:#999;
+}
 
 @keyframes pulse{
     0%,100%{opacity:1}
     50%{opacity:.25}
 }
 
-/* =========================
-   BLOCKS
-========================= */
-.block{
+/* PANELS */
+
+.panel{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:7px 12px;
+
     display:flex;
     align-items:baseline;
-    gap:5px;
-    padding:6px 10px;
-    background:rgba(0,0,0,0.88);
-    border:1px solid rgba(255,255,255,0.10);
-    border-radius:999px;
-    backdrop-filter: blur(10px);
+    gap:6px;
+
+    backdrop-filter:blur(12px);
 }
 
-.label{ font-size:9px; color:#aaa; letter-spacing:1px; }
-.value{ font-size:13px; font-weight:700; }
-
-.viewers{color:#00ff88;}
-.peak{color:#ffb300;}
-.subs{color:#00e5ff;}
-.goal{color:#ff5f7a;}
-
-.divider{
-    width:1px;
-    height:16px;
-    background:rgba(255,255,255,0.15);
-}
-
-/* =========================
-   STATUS TEXT
-========================= */
-#status{
+.label{
     font-size:9px;
-    color:#888;
-    padding:6px 8px;
-    background:rgba(0,0,0,0.75);
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,0.10);
+    color:#999;
+    letter-spacing:1px;
 }
 
-/* =========================
-   GLASS SHIMMER (PRO FEEL)
-========================= */
-.block::after{
-    content:"";
-    position:absolute;
+.value{
+    font-size:13px;
+    font-weight:700;
+}
+
+.live-value{
+    color:var(--live);
+}
+
+.peak-value{
+    color:var(--peak);
+}
+
+.sub-value{
+    color:var(--subs);
+}
+
+.goal-value{
+    color:var(--goal);
+}
+
+/* PROGRESS */
+
+.goal-wrap{
+    width:90px;
+    height:6px;
+    overflow:hidden;
+    border-radius:999px;
+    background:rgba(255,255,255,.08);
+    border:1px solid var(--border);
+}
+
+.goal-bar{
+    width:0%;
+    height:100%;
+    background:var(--subs);
+    transition:width .8s ease;
+}
+
+/* STATUS BOX */
+
+#statusBox{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:7px 12px;
+
+    font-size:10px;
+    color:#ccc;
+}
+
+#updated{
+    opacity:.7;
 }
 
 </style>
 </head>
-
 <body>
 
-<div id="bar">
+<div id="dashboard">
 
-    <div class="dot" id="dot"></div>
+    <div id="dot" class="status-dot"></div>
 
-    <div class="block">
+    <div class="panel">
         <span class="label">LIVE</span>
-        <span class="value" id="live">0</span>
+        <span id="live" class="value live-value">0</span>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="block">
+    <div class="panel">
         <span class="label">PEAK</span>
-        <span class="value" id="peak">0</span>
+        <span id="peak" class="value peak-value">0</span>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="block">
+    <div class="panel">
         <span class="label">SUBS</span>
-        <span class="value" id="subs">0</span>
+        <span id="subs" class="value sub-value">0</span>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="block">
+    <div class="panel">
         <span class="label">GOAL</span>
-        <span class="value goal" id="goal">1000</span>
+        <span id="goalText" class="value goal-value">1000</span>
     </div>
 
-    <div id="status">SYNCING</div>
+    <div class="goal-wrap">
+        <div id="goalBar" class="goal-bar"></div>
+    </div>
+
+    <div id="statusBox">
+        <span id="status">CONNECTING</span>
+        |
+        <span id="updated">--:--:--</span>
+    </div>
 
 </div>
 
 <script>
 
-const STATS_API =
+const API_URL =
 "https://bonded-in-mystery.infinityfree.me/youtube-stats.php";
 
-const REFRESH_RATE = 7000;
+const GOAL = 1000;
+const REFRESH = 10000;
 
-let last = {};
-let isRunning = false;
+let lastData = {};
+let busy = false;
 
-/* =========================
-   ULTRA SMOOTH TWEEN ENGINE
-========================= */
-function smooth(el, to){
+/* ANIMATION */
 
-    let from = parseFloat(el.dataset.v || 0);
-    let start = performance.now();
+function animateNumber(element, target){
 
-    function step(t){
+    const start = Number(element.dataset.value || 0);
+    const duration = 600;
+    const startTime = performance.now();
 
-        let p = Math.min((t - start) / 500, 1);
-        let val = from + (to - from) * p;
+    function frame(now){
 
-        el.textContent = Math.floor(val).toLocaleString();
+        const progress =
+            Math.min((now - startTime) / duration, 1);
 
-        if(p < 1){
-            requestAnimationFrame(step);
-        } else {
-            el.dataset.v = to;
+        const current =
+            Math.floor(start + ((target - start) * progress));
+
+        element.textContent =
+            current.toLocaleString();
+
+        if(progress < 1){
+            requestAnimationFrame(frame);
+        }else{
+            element.dataset.value = target;
         }
     }
 
-    requestAnimationFrame(step);
+    requestAnimationFrame(frame);
 }
 
-/* =========================
-   FETCH SAFE (NO OVERLAP)
-========================= */
-async function getData(){
+/* STATUS */
 
-    if(isRunning) return null;
-    isRunning = true;
+function setStatus(type,text){
+
+    const dot = document.getElementById("dot");
+
+    dot.className = "status-dot";
+    dot.classList.add(type);
+
+    document.getElementById("status").textContent = text;
+}
+
+/* FETCH */
+
+async function fetchStats(){
+
+    if(busy) return null;
+
+    busy = true;
 
     try{
-        const res = await fetch(STATS_API + "?t=" + Date.now(), {
-            cache: "no-store"
-        });
 
-        const json = await res.json();
-        isRunning = false;
+        const response = await fetch(
+            API_URL + "?t=" + Date.now(),
+            {
+                cache:"no-store"
+            }
+        );
+
+        const raw = await response.text();
+
+        if(!raw.trim().startsWith("{")){
+            throw new Error("Invalid JSON");
+        }
+
+        const json = JSON.parse(raw);
+
+        busy = false;
+
         return json;
 
-    } catch(e){
-        isRunning = false;
+    }catch(error){
+
+        console.error(error);
+
+        busy = false;
+
         return null;
     }
 }
 
-/* =========================
-   APPLY STATS
-========================= */
-function apply(data){
+/* APPLY */
+
+function updateUI(data){
 
     if(!data){
-        document.getElementById("status").textContent = "ERROR";
+
+        setStatus("error","ERROR");
+
         return;
     }
 
-    if(data.liveViewers !== last.liveViewers){
-        smooth(document.getElementById("live"), data.liveViewers || 0);
-    }
+    animateNumber(
+        document.getElementById("live"),
+        data.liveViewers || 0
+    );
 
-    if(data.peakViewers !== last.peakViewers){
-        smooth(document.getElementById("peak"), data.peakViewers || 0);
-    }
+    animateNumber(
+        document.getElementById("peak"),
+        data.peakViewers || 0
+    );
 
-    if(data.subscribers !== last.subscribers){
-        smooth(document.getElementById("subs"), data.subscribers || 0);
-    }
+    animateNumber(
+        document.getElementById("subs"),
+        data.subscribers || 0
+    );
 
-    last = data;
-}
+    const percent =
+        Math.min(
+            ((data.subscribers || 0) / GOAL) * 100,
+            100
+        );
 
-/* =========================
-   STATE ENGINE
-========================= */
-function state(data){
+    document.getElementById("goalBar").style.width =
+        percent + "%";
 
-    const dot = document.getElementById("dot");
-    const status = document.getElementById("status");
-
-    dot.className = "dot";
-
-    if(!data){
-        dot.classList.add("error");
-        status.textContent = "ERROR";
-        return;
-    }
+    document.getElementById("goalText").textContent =
+        GOAL.toLocaleString();
 
     if(data.isLive){
-        dot.classList.add("live");
-        status.textContent = "LIVE BROADCAST";
-    } else {
-        dot.classList.add("off");
-        status.textContent = "OFFLINE";
+        setStatus("live","LIVE");
+    }else{
+        setStatus("offline","OFFLINE");
     }
+
+    document.getElementById("updated").textContent =
+        new Date().toLocaleTimeString();
+
+    lastData = data;
 }
 
-/* =========================
-   MAIN LOOP ENGINE
-========================= */
-async function loop(){
+/* LOOP */
 
-    const data = await getData();
+async function refresh(){
 
-    apply(data);
-    state(data);
+    const data = await fetchStats();
 
+    updateUI(data);
 }
 
-loop();
-setInterval(loop, REFRESH_RATE);
+refresh();
+setInterval(refresh, REFRESH);
 
 </script>
 
