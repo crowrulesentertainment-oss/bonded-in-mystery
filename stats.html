@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Dashboard V12 Episode Build</title>
+<title>CrowRules Dashboard V13 Stable</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -77,7 +77,6 @@ body{
 
 .subs{ color:var(--subs); }
 .goal{ color:var(--goal); }
-.live{ color:var(--live); }
 
 /* STATUS DOT */
 .status-dot{
@@ -114,26 +113,46 @@ body{
 
     <div class="status-dot offline" id="dot"></div>
 
-    <div class="panel"><span class="label">LIVE</span><span id="liveStatus">OFFLINE</span></div>
+    <div class="panel">
+        <span class="label">LIVE</span>
+        <span id="liveStatus">OFFLINE</span>
+    </div>
 
-    <div class="panel"><span class="label">SUBS</span><span class="subs" id="subs">0</span></div>
+    <div class="panel">
+        <span class="label">SUBS</span>
+        <span class="subs" id="subs">0</span>
+    </div>
 
-    <div class="panel"><span class="label">GOAL</span><span class="goal" id="goalText">0 LEFT</span></div>
+    <div class="panel">
+        <span class="label">GOAL</span>
+        <span class="goal" id="goalText">1000 LEFT</span>
+    </div>
 
-    <div class="goal-wrap"><div class="goal-bar" id="goalBar"></div></div>
+    <div class="goal-wrap">
+        <div class="goal-bar" id="goalBar"></div>
+    </div>
 
-    <div class="panel"><span class="label">VIEWERS</span><span id="viewers">0</span></div>
+    <div class="panel">
+        <span class="label">VIEWERS</span>
+        <span id="viewers">0</span>
+    </div>
 
-    <div class="panel"><span class="label">PEAK</span><span id="peakViewers">0</span></div>
+    <div class="panel">
+        <span class="label">PEAK</span>
+        <span id="peakViewers">0</span>
+    </div>
 
-    <div class="panel"><span class="label">STREAM</span><span id="streamTitle">Waiting...</span></div>
+    <div class="panel">
+        <span class="label">STREAM</span>
+        <span id="streamTitle">Waiting...</span>
+    </div>
 
 </div>
 
 <script>
 
 /* =========================
-   CONFIG (SAFE HANDLING)
+   CONFIG
 ========================= */
 
 const API_KEY = window.YT_API_KEY || "";
@@ -142,74 +161,48 @@ const SUB_GOAL = 1000;
 const REFRESH = 30000;
 
 /* =========================
-   CACHE (CRITICAL FOR STABILITY)
+   STATE (FULL SAFETY)
 ========================= */
 
-let cache = {
-    lastSubs: 0,
-    lastGoodChannel: null
-};
-
-let viewerStats = {
-    current: 0,
+const state = {
+    subs: Number(localStorage.getItem("subsCache") || 0),
     peak: Number(localStorage.getItem("peakViewers") || 0)
 };
 
 /* =========================
-   SAFE FETCH (NEVER BREAK UI)
+   SAFE FETCH
 ========================= */
 
-async function ytFetch(url){
-
+async function safeFetch(url){
     try{
         const res = await fetch(url);
         const data = await res.json();
-
-        if(data?.error){
-            console.warn("YT API ERROR:", data.error.message);
-            return null;
-        }
-
-        return data;
-
-    }catch(err){
-        console.warn("NETWORK ERROR:", err);
+        return data?.error ? null : data;
+    }catch{
         return null;
     }
 }
 
 /* =========================
-   CHANNEL API
+   CHANNEL DATA
 ========================= */
 
 async function getChannel(){
-
-    const url =
-        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
-
-    const data = await ytFetch(url);
-
-    if(data?.items?.length){
-        cache.lastGoodChannel = data;
-    }
-
-    return data || cache.lastGoodChannel;
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
+    return await safeFetch(url);
 }
 
 /* =========================
-   LIVE API
+   LIVE DATA
 ========================= */
 
 async function getLive(){
-
-    const url =
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`;
-
-    return await ytFetch(url);
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`;
+    return await safeFetch(url);
 }
 
 /* =========================
-   SUBSCRIBERS (ALWAYS SAFE)
+   SUBS (ALWAYS SAFE)
 ========================= */
 
 function renderSubs(channel){
@@ -218,19 +211,18 @@ function renderSubs(channel){
         Number(channel?.items?.[0]?.statistics?.subscriberCount);
 
     if(!isNaN(apiSubs) && apiSubs > 0){
-        cache.lastSubs = apiSubs;
+        state.subs = apiSubs;
+        localStorage.setItem("subsCache", apiSubs);
     }
 
-    const subs = cache.lastSubs;
-
     document.getElementById("subs").textContent =
-        subs.toLocaleString();
+        state.subs.toLocaleString();
 
-    return subs;
+    return state.subs;
 }
 
 /* =========================
-   GOAL (ALWAYS RENDERS)
+   GOAL (ALWAYS ACTIVE)
 ========================= */
 
 function renderGoal(subs){
@@ -274,45 +266,53 @@ function renderViewers(live){
     const liveItem = live?.items?.[0];
 
     const current =
-        Number(liveItem?.liveStreamingDetails?.concurrentViewers ?? viewerStats.current);
-
-    viewerStats.current = current;
+        Number(liveItem?.liveStreamingDetails?.concurrentViewers ?? 0);
 
     document.getElementById("viewers").textContent =
         current.toLocaleString();
 
-    if(current > viewerStats.peak){
-        viewerStats.peak = current;
-        localStorage.setItem("peakViewers", viewerStats.peak);
+    if(current > state.peak){
+        state.peak = current;
+        localStorage.setItem("peakViewers", state.peak);
     }
 
     document.getElementById("peakViewers").textContent =
-        viewerStats.peak.toLocaleString();
+        state.peak.toLocaleString();
 }
 
 /* =========================
-   MASTER LOOP (EPISODE CORE)
+   MAIN LOOP
 ========================= */
 
 async function update(){
 
-    const [channel, live] = await Promise.all([
-        getChannel(),
-        getLive()
-    ]);
+    const channel = await getChannel();
+    const live = await getLive();
 
-    /* 🔥 SUBS ALWAYS FIRST (NO DEPENDENCIES) */
     const subs = renderSubs(channel);
     renderGoal(subs);
 
-    /* 🔥 LIVE IS INDEPENDENT */
     renderLive(live);
     renderViewers(live);
 }
 
-/* START SYSTEM */
-update();
-setInterval(update, REFRESH);
+/* =========================
+   INIT (NO BLANK STATES EVER)
+========================= */
+
+function init(){
+
+    // immediate safe render (OBS stability)
+    document.getElementById("subs").textContent =
+        state.subs.toLocaleString();
+
+    renderGoal(state.subs);
+
+    update();
+    setInterval(update, REFRESH);
+}
+
+init();
 
 </script>
 
