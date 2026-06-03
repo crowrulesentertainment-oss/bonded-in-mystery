@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CrowRules Live Overlay SAFE</title>
+<title>CrowRules Safe HUD</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -47,11 +47,12 @@ body{
 .block{
     flex:1;
     text-align:center;
-    padding:8px;
+    padding:10px;
+    margin:0 6px;
+
     background:linear-gradient(180deg,var(--panel),#0f1623);
     border:1px solid var(--border);
     border-radius:10px;
-    margin:0 6px;
 }
 
 .label{
@@ -71,7 +72,8 @@ body{
 .goal{
     flex:1.6;
     text-align:center;
-    padding:8px;
+    padding:10px;
+
     background:linear-gradient(180deg,var(--panel),#0f1623);
     border:1px solid var(--border);
     border-radius:10px;
@@ -91,7 +93,7 @@ body{
     height:100%;
     width:0%;
     background:linear-gradient(90deg,#00d4ff,#00ff9d);
-    transition:width .4s ease;
+    transition:width .5s ease;
 }
 
 /* STATUS */
@@ -134,7 +136,7 @@ body{
 
 </div>
 
-<div id="status">INIT</div>
+<div id="status">SAFE MODE</div>
 
 <script>
 const CONFIG = {
@@ -142,35 +144,43 @@ const CONFIG = {
     channelId: "UCOSm_4z9LIQUWHOc8yzPgkw",
     goal: 1000,
     interval: 5000,
-    cacheKey: "crowrules_overlay_safe"
+    cacheKey: "crowrules_safe_overlay"
 };
 
+/* STATE (CRITICAL: ALWAYS HAS FALLBACK DATA) */
 let state = {
-    viewers: 0,
-    peak: 0,
     subs: 0,
+    peak: 0,
+    viewers: 0,
     lastSubs: 0
 };
 
+/* ELEMENTS */
 const el = {
+    subs: document.getElementById("subs"),
     viewers: document.getElementById("viewers"),
     peak: document.getElementById("peak"),
-    subs: document.getElementById("subs"),
     bar: document.getElementById("bar"),
     status: document.getElementById("status")
 };
 
-/* CACHE (CRITICAL FOR OBS SAFETY) */
-function load(){
+/* =========================
+   CACHE LOAD (KEY FEATURE)
+========================= */
+function loadCache(){
     const saved = localStorage.getItem(CONFIG.cacheKey);
     if(saved){
-        state = {...state, ...JSON.parse(saved)};
+        state = { ...state, ...JSON.parse(saved) };
     }
     render();
 }
 
-function save(){
-    localStorage.setItem(CONFIG.cacheKey, JSON.stringify(state));
+/* CACHE SAVE */
+function saveCache(){
+    localStorage.setItem(CONFIG.cacheKey, JSON.stringify({
+        subs: state.subs,
+        peak: state.peak
+    }));
 }
 
 /* SAFE FETCH */
@@ -184,9 +194,12 @@ async function safeFetch(url){
     }
 }
 
-/* SUBSCRIBERS */
+/* =========================
+   YOUTUBE SUBSCRIBERS ONLY
+========================= */
 async function getSubs(){
     const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CONFIG.channelId}&key=${CONFIG.apiKey}`;
+
     const data = await safeFetch(url);
 
     return data?.items?.[0]?.statistics?.subscriberCount
@@ -194,65 +207,41 @@ async function getSubs(){
         : null;
 }
 
-/* LIVE VIEWERS */
-async function getViewers(){
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${CONFIG.channelId}&eventType=live&type=video&key=${CONFIG.apiKey}`;
-    const search = await safeFetch(searchUrl);
-
-    const videoId = search?.items?.[0]?.id?.videoId;
-    if(!videoId) return null;
-
-    const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${CONFIG.apiKey}`;
-    const video = await safeFetch(videoUrl);
-
-    return video?.items?.[0]?.liveStreamingDetails?.concurrentViewers
-        ? parseInt(video.items[0].liveStreamingDetails.concurrentViewers)
-        : null;
-}
-
-/* RENDER (NEVER BREAKS) */
-function render(){
-    el.viewers.innerText = state.viewers;
-    el.peak.innerText = state.peak;
-    el.subs.innerText = state.subs;
-
-    let percent = (state.subs / CONFIG.goal) * 100;
-    el.bar.style.width = Math.min(percent,100) + "%";
-}
-
-/* UPDATE LOOP */
+/* =========================
+   MAIN UPDATE LOOP
+========================= */
 async function update(){
-    el.status.innerText = "SYNC";
 
-    const [subs, viewers] = await Promise.all([
-        getSubs(),
-        getViewers()
-    ]);
+    const subs = await getSubs();
 
-    /* SUBS SAFE */
+    /* SUBS ALWAYS SAFE */
     if(subs !== null){
         state.subs = subs;
         state.lastSubs = subs;
+        el.status.innerText = "LIVE SYNC";
     } else {
         state.subs = state.lastSubs;
-    }
-
-    /* VIEWERS SAFE */
-    if(viewers !== null){
-        state.viewers = viewers;
-        if(viewers > state.peak) state.peak = viewers;
-        el.status.innerText = "LIVE";
-    } else {
-        state.viewers = 0;
-        el.status.innerText = "OFFLINE";
+        el.status.innerText = "OFFLINE SAFE";
     }
 
     render();
-    save();
+    saveCache();
+}
+
+/* =========================
+   RENDER (NEVER BREAK UI)
+========================= */
+function render(){
+    el.subs.innerText = state.subs;
+    el.viewers.innerText = state.viewers;
+    el.peak.innerText = state.peak;
+
+    let percent = (state.subs / CONFIG.goal) * 100;
+    el.bar.style.width = Math.min(percent, 100) + "%";
 }
 
 /* INIT */
-load();
+loadCache();
 update();
 setInterval(update, CONFIG.interval);
 </script>
