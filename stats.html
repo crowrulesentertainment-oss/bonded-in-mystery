@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Entertainment Dashboard V3</title>
+<title>CrowRules Entertainment Dashboard V4</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
 
@@ -17,10 +17,13 @@
     --subs:#00d9ff;
     --goal:#ffb300;
     --text:#ffffff;
-    --glow:rgba(0,255,136,.35);
 }
 
-*{margin:0;padding:0;box-sizing:border-box;}
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
 
 body{
     background:transparent;
@@ -28,7 +31,6 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
-/* MAIN WRAP */
 #dashboard{
     position:absolute;
     top:15px;
@@ -38,67 +40,55 @@ body{
     gap:10px;
 }
 
-/* PANELS */
 .panel{
     background:var(--bg);
     border:1px solid var(--border);
     backdrop-filter:blur(18px);
-    border-radius:16px;
+    border-radius:14px;
     padding:8px 12px;
     display:flex;
     align-items:center;
     gap:6px;
-    box-shadow:0 0 18px rgba(0,217,255,.10);
+    color:var(--text);
 }
 
 .label{
-    color:#888;
     font-size:9px;
+    color:#888;
     letter-spacing:1px;
 }
 
 .value{
     font-size:13px;
     font-weight:700;
-    color:var(--text);
 }
 
-/* LIVE STATES */
-.live{color:var(--live);}
-.subs{color:var(--subs);}
-.goal{color:var(--goal);}
+.subs{ color:var(--subs); }
+.goal{ color:var(--goal); }
+.live{ color:var(--live); }
 
 #avatar{
     width:44px;
     height:44px;
     border-radius:50%;
     border:2px solid var(--subs);
-    box-shadow:0 0 18px rgba(0,217,255,.3);
 }
 
-/* STATUS DOT */
 .status-dot{
     width:10px;
     height:10px;
     border-radius:50%;
-    animation:pulse 1.6s infinite;
+    animation:pulse 1.5s infinite;
 }
 
-.online{
-    background:var(--live);
-    box-shadow:0 0 12px var(--glow);
-}
-
-.offline{
-    background:var(--offline);
-}
+.online{ background:var(--live); }
+.offline{ background:var(--offline); }
 
 @keyframes pulse{
     0%,100%{opacity:1;}
-    50%{opacity:.25;}
+    50%{opacity:.3;}
 }
 
-/* GOAL BAR */
 .goal-wrap{
     width:120px;
     height:7px;
@@ -114,7 +104,6 @@ body{
     transition:width .6s ease;
 }
 
-/* STREAM TITLE */
 #streamTitle{
     max-width:260px;
     white-space:nowrap;
@@ -122,19 +111,12 @@ body{
     text-overflow:ellipsis;
 }
 
-/* UPTIME */
-#uptime{
-    font-size:10px;
-    color:#aaa;
-}
-
-/* ERROR STATE */
 #error{
     position:absolute;
     bottom:-22px;
     right:0;
     font-size:10px;
-    color:#ff5555;
+    color:var(--offline);
     display:none;
 }
 
@@ -144,6 +126,8 @@ body{
 <body>
 
 <div id="dashboard">
+
+    <img id="avatar" src="">
 
     <div class="status-dot offline" id="dot"></div>
 
@@ -159,7 +143,7 @@ body{
 
     <div class="panel">
         <span class="label">GOAL</span>
-        <span class="value goal" id="goalRemaining">--</span>
+        <span class="value goal" id="goalText">0 LEFT</span>
     </div>
 
     <div class="goal-wrap">
@@ -171,19 +155,9 @@ body{
         <span class="value" id="streamTitle">Waiting...</span>
     </div>
 
-    <div class="panel">
-        <span class="label">UPTIME</span>
-        <span class="value" id="uptime">00:00:00</span>
-    </div>
-
-    <div class="panel">
-        <span class="label">UPDATED</span>
-        <span class="value" id="updated">--:--:--</span>
-    </div>
-
-    <div id="error">API error (retrying...)</div>
-
 </div>
+
+<div id="error">API error (using cached data)</div>
 
 <script>
 
@@ -195,110 +169,101 @@ const CONFIG = {
     API_KEY: "AIzaSyAZ1zjGhtj4pA_hDVsQQzKXnUrcDAkDoWI",
     CHANNEL_ID: "UCOSm_4z9LIQUWHOc8yzPgkw",
     SUB_GOAL: 1000,
-    REFRESH: 30000,
-    RETRY_DELAY: 5000
+    REFRESH: 30000
 };
 
 /* =========================
-   STATE
+   CACHE STATE (CRITICAL FIX)
 ========================= */
 
-let lastSubs = 0;
-let liveStartTime = null;
-let retryTimeout = null;
+let cache = {
+    subs: 0,
+    avatar: "",
+    lastLive: false
+};
 
 /* =========================
-   UTIL: ANIMATE NUMBER
+   SAFE RENDER HELPERS
 ========================= */
 
-function animateNumber(el, target){
-    const start = Number(el.dataset.value || 0);
-    const duration = 600;
-    const startTime = performance.now();
-
-    function step(now){
-        const p = Math.min((now - startTime) / duration, 1);
-        const val = Math.floor(start + (target - start) * p);
-
-        el.textContent = val.toLocaleString();
-
-        if(p < 1) requestAnimationFrame(step);
-        else el.dataset.value = target;
-    }
-
-    requestAnimationFrame(step);
+function setSubs(value){
+    const el = document.getElementById("subs");
+    el.textContent = value.toLocaleString();
+    cache.subs = value;
 }
 
-/* =========================
-   UPTIME TIMER
-========================= */
+function setGoal(subs){
+    const remaining = Math.max(CONFIG.SUB_GOAL - subs, 0);
 
-function updateUptime(){
-    if(!liveStartTime) return;
+    document.getElementById("goalText").textContent =
+        `${remaining.toLocaleString()} LEFT`;
 
-    const diff = Date.now() - liveStartTime;
-    const sec = Math.floor(diff / 1000);
+    const percent = Math.min((subs / CONFIG.SUB_GOAL) * 100, 100);
 
-    const h = String(Math.floor(sec / 3600)).padStart(2,'0');
-    const m = String(Math.floor((sec % 3600) / 60)).padStart(2,'0');
-    const s = String(sec % 60).padStart(2,'0');
+    document.getElementById("goalBar").style.width =
+        percent + "%";
+}
 
-    document.getElementById("uptime").textContent =
-        `${h}:${m}:${s}`;
+function setAvatar(url){
+    if(url){
+        document.getElementById("avatar").src = url;
+        cache.avatar = url;
+    }
 }
 
 /* =========================
    API CALLS
 ========================= */
 
-async function getChannel(){
+async function fetchChannel(){
     return fetch(
         `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CONFIG.CHANNEL_ID}&key=${CONFIG.API_KEY}`
     ).then(r => r.json());
 }
 
-async function getLive(){
+async function fetchLive(){
     return fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CONFIG.CHANNEL_ID}&eventType=live&type=video&key=${CONFIG.API_KEY}`
     ).then(r => r.json());
 }
 
 /* =========================
-   MAIN UPDATE LOOP
+   MAIN UPDATE
 ========================= */
 
-async function refresh(){
-    const errorBox = document.getElementById("error");
+async function updateDashboard(){
+
+    const error = document.getElementById("error");
 
     try{
-        errorBox.style.display = "none";
+        error.style.display = "none";
 
         const [channel, live] = await Promise.all([
-            getChannel(),
-            getLive()
+            fetchChannel(),
+            fetchLive()
         ]);
 
-        const info = channel.items?.[0];
-        if(!info) return;
+        const info = channel?.items?.[0];
 
-        const subs = Number(info.statistics.subscriberCount || 0);
+        /* =========================
+           SUBSCRIBERS (FIXED ALWAYS)
+        ========================= */
+        const subs = Number(
+            info?.statistics?.subscriberCount ?? cache.subs
+        );
 
-        animateNumber(document.getElementById("subs"), subs);
+        setSubs(subs);
+        setGoal(subs);
 
-        /* avatar */
-        document.getElementById("avatar").src =
-            info.snippet.thumbnails.default.url;
+        /* =========================
+           AVATAR
+        ========================= */
+        setAvatar(info?.snippet?.thumbnails?.default?.url);
 
-        /* goal */
-        const remaining = Math.max(CONFIG.SUB_GOAL - subs, 0);
-        document.getElementById("goalRemaining").textContent =
-            remaining.toLocaleString();
-
-        const percent = Math.min((subs / CONFIG.SUB_GOAL) * 100, 100);
-        document.getElementById("goalBar").style.width = percent + "%";
-
-        /* LIVE STATE */
-        const isLive = live.items?.length > 0;
+        /* =========================
+           LIVE STATE
+        ========================= */
+        const isLive = (live?.items?.length ?? 0) > 0;
 
         const dot = document.getElementById("dot");
         const status = document.getElementById("liveStatus");
@@ -310,37 +275,37 @@ async function refresh(){
             document.getElementById("streamTitle").textContent =
                 live.items[0].snippet.title;
 
-            if(!liveStartTime) liveStartTime = Date.now();
         }else{
             dot.className = "status-dot offline";
             status.textContent = "OFFLINE";
-            document.getElementById("streamTitle").textContent = "No Active Stream";
-            liveStartTime = null;
-            document.getElementById("uptime").textContent = "00:00:00";
+
+            document.getElementById("streamTitle").textContent =
+                "No Active Stream";
         }
-
-        /* update tracking */
-        lastSubs = subs;
-
-        document.getElementById("updated").textContent =
-            new Date().toLocaleTimeString();
 
     }catch(err){
         console.error(err);
+
+        /* =========================
+           HARD FALLBACK (CRITICAL FIX)
+        ========================= */
+
         document.getElementById("error").style.display = "block";
 
-        clearTimeout(retryTimeout);
-        retryTimeout = setTimeout(refresh, CONFIG.RETRY_DELAY);
+        setSubs(cache.subs);
+        setGoal(cache.subs);
+
+        document.getElementById("streamTitle").textContent =
+            "Using cached data";
     }
 }
 
 /* =========================
-   START
+   START LOOP
 ========================= */
 
-refresh();
-setInterval(refresh, CONFIG.REFRESH);
-setInterval(updateUptime, 1000);
+updateDashboard();
+setInterval(updateDashboard, CONFIG.REFRESH);
 
 </script>
 
