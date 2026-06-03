@@ -1,147 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>YouTube Live Stats Overlay</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php
+header("Content-Type: application/json");
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+$API_KEY = "AIzaSyArQ6fqOxl8jenWZME2z1qwhd8qBNPD0KI";
+$CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
 
-<style>
-body {
-    margin: 0;
-    background: transparent;
-    overflow: hidden;
-    font-family: 'Orbitron', sans-serif;
-}
+/* DEFAULT OUTPUT (ALWAYS SAFE) */
+$output = [
+    "viewers" => 0,
+    "subs" => 0,
+    "goal" => 10000,
+    "status" => "offline"
+];
 
-/* MAIN BAR */
-.stats-bar {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    display: flex;
-    gap: 18px;
-    padding: 12px 18px;
-    border-radius: 12px;
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(8px);
-    color: white;
-    align-items: center;
-    box-shadow: 0 0 20px rgba(0,0,0,0.4);
-}
+/* =========================
+   1. GET SUBSCRIBER COUNT (CHANNEL)
+========================= */
+$channelUrl = "https://www.googleapis.com/youtube/v3/channels?part=statistics&id=$CHANNEL_ID&key=$API_KEY";
 
-/* ITEM */
-.stat {
-    display: flex;
-    flex-direction: column;
-    text-align: left;
-    min-width: 110px;
-}
+$channelResponse = @file_get_contents($channelUrl);
 
-.label {
-    font-size: 10px;
-    opacity: 0.7;
-    letter-spacing: 1px;
-}
+if ($channelResponse !== false) {
+    $channelData = json_decode($channelResponse, true);
 
-.value {
-    font-size: 18px;
-    font-weight: 700;
-}
+    if (!empty($channelData["items"][0]["statistics"])) {
+        $stats = $channelData["items"][0]["statistics"];
 
-/* LIVE BADGE */
-.live {
-    background: red;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: bold;
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* SUBTLE ANIMATION */
-.fade {
-    transition: all 0.4s ease;
-}
-</style>
-</head>
-
-<body>
-
-<div class="stats-bar">
-
-    <div class="live" id="liveStatus">OFFLINE</div>
-
-    <div class="stat">
-        <div class="label">SUBSCRIBERS</div>
-        <div class="value fade" id="subs">0</div>
-    </div>
-
-    <div class="stat">
-        <div class="label">LIVE VIEWERS</div>
-        <div class="value fade" id="viewers">0</div>
-    </div>
-
-    <div class="stat">
-        <div class="label">PEAK</div>
-        <div class="value fade" id="peak">0</div>
-    </div>
-
-</div>
-
-<script>
-const API_URL = "youtube-stats.php"; // your PHP endpoint
-
-let lastData = {};
-
-/* FORMAT NUMBER */
-function format(n) {
-    return n.toLocaleString();
-}
-
-/* UPDATE UI */
-function updateUI(data) {
-
-    if (!data) return;
-
-    document.getElementById("subs").textContent = format(data.subscribers || 0);
-    document.getElementById("viewers").textContent = format(data.liveViewers || 0);
-    document.getElementById("peak").textContent = format(data.peakViewers || 0);
-
-    const status = document.getElementById("liveStatus");
-    status.textContent = data.isLive ? "LIVE" : "OFFLINE";
-    status.style.background = data.isLive ? "red" : "gray";
-
-    lastData = data;
-}
-
-/* FETCH DATA */
-async function fetchStats() {
-    try {
-        const res = await fetch(API_URL + "?t=" + Date.now(), {
-            cache: "no-store"
-        });
-
-        const data = await res.json();
-        updateUI(data);
-
-    } catch (err) {
-        console.log("Fetch error:", err);
+        $output["subs"] = isset($stats["subscriberCount"])
+            ? (int)$stats["subscriberCount"]
+            : 0;
     }
 }
 
-/* LOOP (SAFE QUOTA FRIENDLY) */
-fetchStats();
-setInterval(fetchStats, 5000); // 5s refresh (safe for quota)
-</script>
+/* =========================
+   2. TRY TO FIND LIVE VIDEO (OPTIONAL)
+========================= */
+$searchUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=$CHANNEL_ID&type=video&eventType=live&key=$API_KEY";
 
-</body>
-</html>
+$searchResponse = @file_get_contents($searchUrl);
+
+if ($searchResponse !== false) {
+    $searchData = json_decode($searchResponse, true);
+
+    if (!empty($searchData["items"][0]["id"]["videoId"])) {
+
+        $videoId = $searchData["items"][0]["id"]["videoId"];
+
+        /* GET LIVE VIEWERS */
+        $videoUrl = "https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=$videoId&key=$API_KEY";
+
+        $videoResponse = @file_get_contents($videoUrl);
+
+        if ($videoResponse !== false) {
+            $videoData = json_decode($videoResponse, true);
+
+            if (!empty($videoData["items"][0]["liveStreamingDetails"]["concurrentViewers"])) {
+                $output["viewers"] =
+                    (int)$videoData["items"][0]["liveStreamingDetails"]["concurrentViewers"];
+
+                $output["status"] = "live";
+            }
+        }
+    }
+}
+
+/* =========================
+   3. ALWAYS INCLUDE GOAL
+========================= */
+$output["goal"] = 10000;
+
+/* OUTPUT JSON */
+echo json_encode($output);
+?>
