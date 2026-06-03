@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Entertainment Dashboard V6</title>
+<title>CrowRules Dashboard V7</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
 
@@ -21,7 +21,6 @@
     --text:#ffffff;
 }
 
-/* RESET */
 *{
     margin:0;
     padding:0;
@@ -34,7 +33,6 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
-/* MAIN DASHBOARD */
 #dashboard{
     position:absolute;
     top:15px;
@@ -51,7 +49,6 @@ body{
     background:rgba(0,0,0,0.25);
 }
 
-/* DARK READABLE BUTTON PANELS */
 .panel{
     background:var(--panel);
     border:1px solid var(--border);
@@ -68,12 +65,10 @@ body{
         inset 0 0 0 1px rgba(255,255,255,0.03);
 }
 
-/* TEXT */
 .label{
     font-size:9px;
     letter-spacing:1px;
     color:#cfcfcf;
-    opacity:0.9;
 }
 
 .value{
@@ -83,32 +78,25 @@ body{
     text-shadow:0 2px 6px rgba(0,0,0,0.85);
 }
 
-/* COLORS */
 .subs{
     color:var(--subs);
-    text-shadow:0 0 6px rgba(0,229,255,0.25);
 }
 
 .goal{
     color:var(--goal);
-    text-shadow:0 0 6px rgba(255,204,102,0.25);
 }
 
 .live{
     color:var(--live);
-    text-shadow:0 0 6px rgba(0,255,136,0.25);
 }
 
-/* AVATAR */
 #avatar{
     width:44px;
     height:44px;
     border-radius:50%;
     border:2px solid var(--subs);
-    box-shadow:0 0 10px rgba(0,229,255,0.25);
 }
 
-/* STATUS DOT */
 .status-dot{
     width:10px;
     height:10px;
@@ -116,22 +104,14 @@ body{
     animation:pulse 1.5s infinite;
 }
 
-.online{
-    background:var(--live);
-    box-shadow:0 0 10px rgba(0,255,136,0.5);
-}
-
-.offline{
-    background:var(--offline);
-    box-shadow:0 0 10px rgba(255,77,77,0.35);
-}
+.online{ background:var(--live); }
+.offline{ background:var(--offline); }
 
 @keyframes pulse{
     0%,100%{opacity:1;}
     50%{opacity:0.25;}
 }
 
-/* GOAL BAR */
 .goal-wrap{
     width:120px;
     height:7px;
@@ -145,11 +125,9 @@ body{
     width:0%;
     height:100%;
     background:linear-gradient(90deg,#00e5ff,#00ff88);
-    box-shadow:0 0 10px rgba(0,255,136,0.25);
     transition:width 0.5s ease;
 }
 
-/* STREAM TITLE */
 #streamTitle{
     max-width:260px;
     white-space:nowrap;
@@ -157,7 +135,6 @@ body{
     text-overflow:ellipsis;
 }
 
-/* ERROR */
 #error{
     position:absolute;
     bottom:-20px;
@@ -221,18 +198,19 @@ body{
 ========================= */
 
 const CONFIG = {
-    API_KEY: "AIzaSyAZ1zjGhtj4pA_hDVsQQzKXnUrcDAkDoWI",
+    API_KEY: "AIzaSyBAK7ltFPFDX-k0FjBMnKzf0pq_WSJGhGY",
     CHANNEL_ID: "UCOSm_4z9LIQUWHOc8yzPgkw",
     SUB_GOAL: 1000,
     REFRESH: 30000
 };
 
 /* =========================
-   STATE (NO BLANK UI EVER)
+   STATE (ROBUST CACHE)
 ========================= */
 
 let cache = {
-    subs: 0
+    subs: 0,
+    lastGoodSubs: 0
 };
 
 let viewerStats = {
@@ -241,32 +219,82 @@ let viewerStats = {
 };
 
 /* =========================
-   API
+   SAFE CHANNEL FETCH
 ========================= */
 
 async function fetchChannel(){
-    return fetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CONFIG.CHANNEL_ID}&key=${CONFIG.API_KEY}`
-    ).then(r => r.json());
-}
+    try{
+        const res = await fetch(
+            `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CONFIG.CHANNEL_ID}&key=${CONFIG.API_KEY}`
+        );
 
-async function fetchLive(){
-    return fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CONFIG.CHANNEL_ID}&eventType=live&type=video&key=${CONFIG.API_KEY}`
-    ).then(r => r.json());
+        const data = await res.json();
+
+        if(!data?.items?.length){
+            throw new Error("No channel data");
+        }
+
+        return data;
+
+    }catch(err){
+        console.warn("Channel API failed:", err);
+
+        return {
+            items: [{
+                statistics: {
+                    subscriberCount: cache.lastGoodSubs || cache.subs || 0
+                },
+                snippet: {
+                    thumbnails: {
+                        default: { url: "" }
+                    }
+                }
+            }]
+        };
+    }
 }
 
 /* =========================
-   SAFE RENDER
+   LIVE FETCH
 ========================= */
 
-function setSubs(subs){
-    document.getElementById("subs").textContent =
-        subs.toLocaleString();
-    cache.subs = subs;
+async function fetchLive(){
+    try{
+        const res = await fetch(
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CONFIG.CHANNEL_ID}&eventType=live&type=video&key=${CONFIG.API_KEY}`
+        );
+
+        return await res.json();
+
+    }catch(err){
+        return { items: [] };
+    }
 }
 
-function setGoal(subs){
+/* =========================
+   SUB HANDLING (FIXED CORE)
+========================= */
+
+function updateSubs(info){
+    let subs = cache.subs;
+
+    if(info?.statistics?.subscriberCount !== undefined){
+        subs = Number(info.statistics.subscriberCount);
+        cache.subs = subs;
+        cache.lastGoodSubs = subs;
+    }
+
+    document.getElementById("subs").textContent =
+        subs.toLocaleString();
+
+    return subs;
+}
+
+/* =========================
+   GOAL
+========================= */
+
+function updateGoal(subs){
     const remaining = Math.max(CONFIG.SUB_GOAL - subs, 0);
 
     document.getElementById("goalText").textContent =
@@ -296,14 +324,9 @@ async function update(){
 
         const info = channel?.items?.[0];
 
-        /* SUBS (ALWAYS SAFE) */
-        const subs = Number(info?.statistics?.subscriberCount ?? cache.subs);
-        setSubs(subs);
-        setGoal(subs);
-
-        /* AVATAR */
-        const avatar = info?.snippet?.thumbnails?.default?.url;
-        if(avatar) document.getElementById("avatar").src = avatar;
+        /* SUBSCRIBERS (FULLY FIXED) */
+        const subs = updateSubs(info);
+        updateGoal(subs);
 
         /* LIVE STATE */
         const isLive = (live?.items?.length ?? 0) > 0;
@@ -323,7 +346,7 @@ async function update(){
                 "No Active Stream";
         }
 
-        /* VIEWERS (LIVE ONLY) */
+        /* VIEWERS */
         const liveItem = live?.items?.[0];
 
         const currentViewers = Number(
@@ -333,9 +356,9 @@ async function update(){
 
         viewerStats.current = currentViewers;
         document.getElementById("viewers").textContent =
-            viewerStats.current.toLocaleString();
+            currentViewers.toLocaleString();
 
-        /* PEAK VIEWERS */
+        /* PEAK */
         if(currentViewers > viewerStats.peak){
             viewerStats.peak = currentViewers;
             localStorage.setItem("peakViewers", viewerStats.peak);
@@ -348,15 +371,10 @@ async function update(){
         console.error(err);
         errorBox.style.display = "block";
 
-        /* SAFE FALLBACK */
-        setSubs(cache.subs);
-        setGoal(cache.subs);
+        document.getElementById("subs").textContent =
+            cache.lastGoodSubs.toLocaleString();
 
-        document.getElementById("viewers").textContent =
-            viewerStats.current.toLocaleString();
-
-        document.getElementById("peakViewers").textContent =
-            viewerStats.peak.toLocaleString();
+        updateGoal(cache.lastGoodSubs);
     }
 }
 
