@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>YouTube Live Stats Bar Compact</title>
+<title>Broadcast Pro Dashboard</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
 
@@ -15,6 +15,9 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
+/* =========================
+   MAIN BAR
+========================= */
 #bar{
     position:absolute;
     top:10px;
@@ -24,24 +27,29 @@ body{
     gap:10px;
 }
 
-/* LIVE DOT */
-.live-dot{
-    width:7px;
-    height:7px;
+/* =========================
+   STATUS DOT SYSTEM
+========================= */
+.dot{
+    width:8px;
+    height:8px;
     border-radius:50%;
-    background:#00ff88;
+    background:#888;
     animation:pulse 1.5s infinite;
 }
 
-.live-dot.off{ background:#ff4444; }
-.live-dot.upcoming{ background:#ffb300; }
+.dot.live{ background:#00ff88; }
+.dot.off{ background:#ff4444; }
+.dot.error{ background:#999; }
 
 @keyframes pulse{
     0%,100%{opacity:1}
-    50%{opacity:.3}
+    50%{opacity:.25}
 }
 
-/* BLOCKS */
+/* =========================
+   BLOCKS
+========================= */
 .block{
     display:flex;
     align-items:baseline;
@@ -50,11 +58,11 @@ body{
     background:rgba(0,0,0,0.88);
     border:1px solid rgba(255,255,255,0.10);
     border-radius:999px;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
 }
 
-.label{ font-size:9px; color:#aaa; }
-.value{ font-size:12px; font-weight:700; }
+.label{ font-size:9px; color:#aaa; letter-spacing:1px; }
+.value{ font-size:13px; font-weight:700; }
 
 .viewers{color:#00ff88;}
 .peak{color:#ffb300;}
@@ -67,22 +75,9 @@ body{
     background:rgba(255,255,255,0.15);
 }
 
-#progressWrap{
-    width:55px;
-    height:4px;
-    background:rgba(0,0,0,0.6);
-    border-radius:10px;
-    overflow:hidden;
-    border:1px solid rgba(255,255,255,0.12);
-}
-
-#progressBar{
-    height:100%;
-    width:0%;
-    background:#00e5ff;
-    transition:width .6s ease;
-}
-
+/* =========================
+   STATUS TEXT
+========================= */
 #status{
     font-size:9px;
     color:#888;
@@ -92,6 +87,14 @@ body{
     border:1px solid rgba(255,255,255,0.10);
 }
 
+/* =========================
+   GLASS SHIMMER (PRO FEEL)
+========================= */
+.block::after{
+    content:"";
+    position:absolute;
+}
+
 </style>
 </head>
 
@@ -99,25 +102,25 @@ body{
 
 <div id="bar">
 
-    <div class="live-dot" id="dot"></div>
+    <div class="dot" id="dot"></div>
 
     <div class="block">
         <span class="label">LIVE</span>
-        <span class="value viewers" id="live">0</span>
+        <span class="value" id="live">0</span>
     </div>
 
     <div class="divider"></div>
 
     <div class="block">
         <span class="label">PEAK</span>
-        <span class="value peak" id="peak">0</span>
+        <span class="value" id="peak">0</span>
     </div>
 
     <div class="divider"></div>
 
     <div class="block">
         <span class="label">SUBS</span>
-        <span class="value subs" id="subs">0</span>
+        <span class="value" id="subs">0</span>
     </div>
 
     <div class="divider"></div>
@@ -127,109 +130,132 @@ body{
         <span class="value goal" id="goal">1000</span>
     </div>
 
-    <div class="divider"></div>
-
-    <div id="progressWrap">
-        <div id="progressBar"></div>
-    </div>
-
-    <div id="status">SYNC</div>
+    <div id="status">SYNCING</div>
 
 </div>
 
 <script>
 
-const GOAL = 1000;
-
-/* ONLY SAFE BACKEND ENDPOINT */
 const STATS_API =
 "https://crowrulesentertainment-oss.github.io/bonded-in-mystery/youtube-stats.php";
 
-let lastLiveState = "unknown";
+const REFRESH_RATE = 7000;
 
-/* ANIMATION */
-function animate(el, target){
-    let start = parseFloat(el.dataset.val || 0);
-    let diff = target - start;
-    let steps = 20;
-    let i = 0;
+let last = {};
+let isRunning = false;
 
-    let interval = setInterval(() => {
-        i++;
-        start += diff / steps;
+/* =========================
+   ULTRA SMOOTH TWEEN ENGINE
+========================= */
+function smooth(el, to){
 
-        if(i >= steps){
-            start = target;
-            clearInterval(interval);
+    let from = parseFloat(el.dataset.v || 0);
+    let start = performance.now();
+
+    function step(t){
+
+        let p = Math.min((t - start) / 500, 1);
+        let val = from + (to - from) * p;
+
+        el.textContent = Math.floor(val).toLocaleString();
+
+        if(p < 1){
+            requestAnimationFrame(step);
+        } else {
+            el.dataset.v = to;
         }
+    }
 
-        el.textContent = Math.floor(start).toLocaleString();
-        el.dataset.val = start;
-
-    }, 30);
+    requestAnimationFrame(step);
 }
 
-/* FETCH STATS FROM YOUR PHP */
-async function fetchStats(){
+/* =========================
+   FETCH SAFE (NO OVERLAP)
+========================= */
+async function getData(){
+
+    if(isRunning) return null;
+    isRunning = true;
+
     try{
-        const res = await fetch(STATS_API + "?t=" + Date.now());
-        return await res.json();
+        const res = await fetch(STATS_API + "?t=" + Date.now(), {
+            cache: "no-store"
+        });
+
+        const json = await res.json();
+        isRunning = false;
+        return json;
+
     } catch(e){
-        document.getElementById("status").textContent = "RETRY";
+        isRunning = false;
         return null;
     }
 }
 
-/* APPLY STATS */
-function applyStats(data){
+/* =========================
+   APPLY STATS
+========================= */
+function apply(data){
 
-    const live = data.liveViewers || 0;
-    const peak = data.peakViewers || 0;
-    const subs = data.subscribers || 0;
+    if(!data){
+        document.getElementById("status").textContent = "ERROR";
+        return;
+    }
 
-    animate(document.getElementById("live"), live);
-    animate(document.getElementById("peak"), peak);
-    animate(document.getElementById("subs"), subs);
+    if(data.liveViewers !== last.liveViewers){
+        smooth(document.getElementById("live"), data.liveViewers || 0);
+    }
 
-    const percent = Math.min((subs / GOAL) * 100, 100);
+    if(data.peakViewers !== last.peakViewers){
+        smooth(document.getElementById("peak"), data.peakViewers || 0);
+    }
 
-    document.getElementById("progressBar").style.width =
-        percent.toFixed(1) + "%";
+    if(data.subscribers !== last.subscribers){
+        smooth(document.getElementById("subs"), data.subscribers || 0);
+    }
 
-    document.getElementById("goal").textContent =
-        GOAL.toLocaleString();
+    last = data;
 }
 
-/* LIVE STATE (FROM PHP ONLY - NO YOUTUBE KEY HERE) */
-function applyLiveState(data){
+/* =========================
+   STATE ENGINE
+========================= */
+function state(data){
 
     const dot = document.getElementById("dot");
     const status = document.getElementById("status");
 
-    dot.classList.remove("off","upcoming");
+    dot.className = "dot";
+
+    if(!data){
+        dot.classList.add("error");
+        status.textContent = "ERROR";
+        return;
+    }
 
     if(data.isLive){
-        status.textContent = "LIVE";
+        dot.classList.add("live");
+        status.textContent = "LIVE BROADCAST";
     } else {
-        status.textContent = "OFFLINE";
         dot.classList.add("off");
+        status.textContent = "OFFLINE";
     }
 }
 
-/* MAIN LOOP */
-async function update(){
+/* =========================
+   MAIN LOOP ENGINE
+========================= */
+async function loop(){
 
-    const stats = await fetchStats();
+    const data = await getData();
 
-    if(stats){
-        applyStats(stats);
-        applyLiveState(stats);
-    }
+    apply(data);
+    state(data);
 
 }
 
-update();
-setInterval(update, 12000);
+loop();
+setInterval(loop, REFRESH_RATE);
 
 </script>
 
