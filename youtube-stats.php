@@ -8,7 +8,7 @@ $CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
 $output = [
     "viewers" => 0,
     "subs" => 0,
-    "goal" => 10000,
+    "goal" => 1000,
     "status" => "offline"
 ];
 
