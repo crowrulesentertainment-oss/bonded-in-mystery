@@ -98,7 +98,7 @@ body {
 </div>
 
 <script>
-const API_URL = "youtube.php"; // your PHP endpoint
+const API_URL = "youtube-stats.php"; // your PHP endpoint
 
 let lastData = {};
 
