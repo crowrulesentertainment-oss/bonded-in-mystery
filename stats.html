@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CrowRules Live Studio V3 HUD</title>
+<title>CrowRules Live HUD V3 Always-On</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -19,7 +19,7 @@ body{
     font-family:Orbitron, sans-serif;
 }
 
-/* HUD WRAPPER */
+/* HUD CONTAINER */
 #hud{
     position:absolute;
     bottom:25px;
@@ -41,11 +41,12 @@ body{
     box-shadow:0 0 28px rgba(0,240,255,0.2);
     backdrop-filter:blur(8px);
 
-    transition:opacity .4s ease;
+    color:white;
 }
 
+/* DIM MODE */
 .dim{
-    opacity:0.5;
+    opacity:0.55;
 }
 
 /* BLOCKS */
@@ -64,7 +65,7 @@ body{
     font-size:21px;
     font-weight:800;
     color:var(--neon);
-    transition:transform .25s ease, text-shadow .25s ease;
+    transition:transform .2s ease, text-shadow .2s ease;
 }
 
 /* FLASH EFFECT */
@@ -80,7 +81,7 @@ body{
     background:rgba(255,255,255,0.15);
 }
 
-/* GOAL SECTION */
+/* GOAL */
 .goal{
     flex:1.5;
     text-align:center;
@@ -98,9 +99,18 @@ body{
 .fill{
     height:100%;
     width:0%;
-    background:linear-gradient(90deg, #00f0ff, #00ff88);
+    background:linear-gradient(90deg,#00f0ff,#00ff88);
     transition:width .5s ease;
     box-shadow:0 0 12px rgba(0,255,200,0.4);
+}
+
+/* STATUS */
+#status{
+    position:absolute;
+    top:6px;
+    right:12px;
+    font-size:9px;
+    opacity:0.5;
 }
 </style>
 </head>
@@ -139,6 +149,8 @@ body{
 
 </div>
 
+<div id="status">LIVE</div>
+
 <script>
 /* =========================
    CONFIG
@@ -146,8 +158,8 @@ body{
 const CONFIG = {
     api: "https://crowrulestv.x10.mx/youtube-stats.php",
     goal: 10000,
-    updateRate: 2000,
-    idleTime: 15000
+    interval: 2500,
+    cacheKey: "crowrules_hud_cache"
 };
 
 /* =========================
@@ -156,22 +168,55 @@ const CONFIG = {
 let state = {
     viewers: 0,
     peak: 0,
-    lastUpdate: Date.now()
+    subs: 0,
+    online: true
 };
 
 /* =========================
-   DOM CACHE
+   ELEMENTS
 ========================= */
 const el = {
     hud: document.getElementById("hud"),
     viewers: document.getElementById("viewers"),
     peak: document.getElementById("peak"),
     subs: document.getElementById("subs"),
-    bar: document.getElementById("bar")
+    bar: document.getElementById("bar"),
+    status: document.getElementById("status")
 };
 
 /* =========================
-   ANIMATION HELPERS
+   CACHE SYSTEM (CRITICAL FIX)
+========================= */
+function loadCache(){
+    const saved = localStorage.getItem(CONFIG.cacheKey);
+    if(saved){
+        state = {...state, ...JSON.parse(saved)};
+    }
+
+    renderStatic();
+}
+
+function saveCache(){
+    localStorage.setItem(CONFIG.cacheKey, JSON.stringify({
+        subs: state.subs,
+        peak: state.peak
+    }));
+}
+
+/* =========================
+   RENDER (ALWAYS ON)
+========================= */
+function renderStatic(){
+
+    el.subs.innerText = state.subs;
+    el.peak.innerText = state.peak;
+
+    let percent = (state.subs / CONFIG.goal) * 100;
+    el.bar.style.width = Math.min(percent, 100) + "%";
+}
+
+/* =========================
+   FLASH EFFECT
 ========================= */
 function flash(id){
     const node = document.getElementById(id);
@@ -180,77 +225,71 @@ function flash(id){
     node.classList.add("flash");
 }
 
-function tweenNumber(from, to, duration, cb){
-    const start = performance.now();
-
-    function step(now){
-        const p = Math.min((now - start) / duration, 1);
-        cb(Math.floor(from + (to - from) * p));
-        if(p < 1) requestAnimationFrame(step);
-    }
-
-    requestAnimationFrame(step);
-}
-
 /* =========================
-   UI UPDATE
-========================= */
-function updateUI(data){
-
-    state.lastUpdate = Date.now();
-
-    /* VIEWERS */
-    if(data.viewers !== state.viewers){
-        tweenNumber(state.viewers, data.viewers, 500, v=>{
-            el.viewers.innerText = v;
-        });
-        flash("viewers");
-        state.viewers = data.viewers;
-    }
-
-    /* SUBS */
-    el.subs.innerText = data.subs;
-
-    /* PEAK */
-    if(data.viewers > state.peak){
-        state.peak = data.viewers;
-        el.peak.innerText = state.peak;
-        flash("peak");
-    }
-
-    /* GOAL BAR */
-    let percent = (data.subs / CONFIG.goal) * 100;
-    el.bar.style.width = Math.min(percent, 100) + "%";
-}
-
-/* =========================
-   FETCH LOOP
+   FETCH DATA
 ========================= */
 async function fetchStats(){
     try{
         const res = await fetch(CONFIG.api);
         const data = await res.json();
-        updateUI(data);
+
+        state.online = true;
+        el.status.innerText = "LIVE";
+        el.status.style.color = "#00f0ff";
+
+        /* VIEWERS */
+        if(data.viewers !== state.viewers){
+            el.viewers.innerText = data.viewers;
+            flash("viewers");
+            state.viewers = data.viewers;
+        }
+
+        /* SUBS (ALWAYS UPDATE) */
+        if(data.subs !== undefined){
+            state.subs = data.subs;
+            el.subs.innerText = state.subs;
+        }
+
+        /* PEAK (ALWAYS TRACK) */
+        if(data.viewers > state.peak){
+            state.peak = data.viewers;
+            el.peak.innerText = state.peak;
+            flash("peak");
+        }
+
+        /* SUB GOAL ALWAYS ACTIVE */
+        let percent = (state.subs / CONFIG.goal) * 100;
+        el.bar.style.width = Math.min(percent, 100) + "%";
+
+        saveCache();
+
     }catch(err){
-        console.log("Fetch error:", err);
+        state.online = false;
+
+        el.status.innerText = "OFFLINE";
+        el.status.style.color = "#ff4d4d";
+
+        /* IMPORTANT: NEVER BLANK SUBS OR GOAL */
+        renderStatic();
     }
 }
 
 /* =========================
-   IDLE MODE
+   IDLE EFFECT (OPTIONAL DIM)
 ========================= */
 function checkIdle(){
-    const idle = Date.now() - state.lastUpdate > CONFIG.idleTime;
+    const idle = !state.online;
     el.hud.classList.toggle("dim", idle);
 }
 
 /* =========================
-   LOOP START
+   INIT
 ========================= */
-setInterval(fetchStats, CONFIG.updateRate);
-setInterval(checkIdle, 3000);
+loadCache();
 
 fetchStats();
+setInterval(fetchStats, CONFIG.interval);
+setInterval(checkIdle, 3000);
 </script>
 
 </body>
