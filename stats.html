@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Entertainment Dashboard V4</title>
+<title>CrowRules Entertainment Dashboard V5</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
 
@@ -38,8 +38,10 @@ body{
     display:flex;
     align-items:center;
     gap:10px;
+    flex-wrap:wrap;
 }
 
+/* PANELS */
 .panel{
     background:var(--bg);
     border:1px solid var(--border);
@@ -49,7 +51,6 @@ body{
     display:flex;
     align-items:center;
     gap:6px;
-    color:var(--text);
 }
 
 .label{
@@ -61,6 +62,7 @@ body{
 .value{
     font-size:13px;
     font-weight:700;
+    color:var(--text);
 }
 
 .subs{ color:var(--subs); }
@@ -101,7 +103,7 @@ body{
     height:100%;
     width:0%;
     background:linear-gradient(90deg,#00d9ff,#00ff88);
-    transition:width .6s ease;
+    transition:width .5s ease;
 }
 
 #streamTitle{
@@ -116,7 +118,7 @@ body{
     bottom:-22px;
     right:0;
     font-size:10px;
-    color:var(--offline);
+    color:#ff5555;
     display:none;
 }
 
@@ -151,6 +153,16 @@ body{
     </div>
 
     <div class="panel">
+        <span class="label">VIEWERS</span>
+        <span class="value" id="viewers">0</span>
+    </div>
+
+    <div class="panel">
+        <span class="label">PEAK</span>
+        <span class="value" id="peakViewers">0</span>
+    </div>
+
+    <div class="panel">
         <span class="label">STREAM</span>
         <span class="value" id="streamTitle">Waiting...</span>
     </div>
@@ -166,50 +178,25 @@ body{
 ========================= */
 
 const CONFIG = {
-    API_KEY: "AIzaSyAZ1zjGhtj4pA_hDVsQQzKXnUrcDAkDoWI",
+    API_KEY: "YOUR_API_KEY_HERE",
     CHANNEL_ID: "UCOSm_4z9LIQUWHOc8yzPgkw",
     SUB_GOAL: 1000,
     REFRESH: 30000
 };
 
 /* =========================
-   CACHE STATE (CRITICAL FIX)
+   STATE (CRITICAL FIX)
 ========================= */
 
 let cache = {
     subs: 0,
-    avatar: "",
-    lastLive: false
+    avatar: ""
 };
 
-/* =========================
-   SAFE RENDER HELPERS
-========================= */
-
-function setSubs(value){
-    const el = document.getElementById("subs");
-    el.textContent = value.toLocaleString();
-    cache.subs = value;
-}
-
-function setGoal(subs){
-    const remaining = Math.max(CONFIG.SUB_GOAL - subs, 0);
-
-    document.getElementById("goalText").textContent =
-        `${remaining.toLocaleString()} LEFT`;
-
-    const percent = Math.min((subs / CONFIG.SUB_GOAL) * 100, 100);
-
-    document.getElementById("goalBar").style.width =
-        percent + "%";
-}
-
-function setAvatar(url){
-    if(url){
-        document.getElementById("avatar").src = url;
-        cache.avatar = url;
-    }
-}
+let viewerStats = {
+    current: 0,
+    peak: Number(localStorage.getItem("peakViewers") || 0)
+};
 
 /* =========================
    API CALLS
@@ -228,15 +215,37 @@ async function fetchLive(){
 }
 
 /* =========================
-   MAIN UPDATE
+   SAFE UI HELPERS
 ========================= */
 
-async function updateDashboard(){
+function setSubs(value){
+    document.getElementById("subs").textContent =
+        value.toLocaleString();
+    cache.subs = value;
+}
 
-    const error = document.getElementById("error");
+function setGoal(subs){
+    const remaining = Math.max(CONFIG.SUB_GOAL - subs, 0);
+
+    document.getElementById("goalText").textContent =
+        `${remaining.toLocaleString()} LEFT`;
+
+    const percent = Math.min((subs / CONFIG.SUB_GOAL) * 100, 100);
+
+    document.getElementById("goalBar").style.width =
+        percent + "%";
+}
+
+/* =========================
+   MAIN LOOP
+========================= */
+
+async function update(){
+
+    const errorBox = document.getElementById("error");
 
     try{
-        error.style.display = "none";
+        errorBox.style.display = "none";
 
         const [channel, live] = await Promise.all([
             fetchChannel(),
@@ -246,7 +255,7 @@ async function updateDashboard(){
         const info = channel?.items?.[0];
 
         /* =========================
-           SUBSCRIBERS (FIXED ALWAYS)
+           SUBS (ALWAYS SAFE)
         ========================= */
         const subs = Number(
             info?.statistics?.subscriberCount ?? cache.subs
@@ -258,7 +267,11 @@ async function updateDashboard(){
         /* =========================
            AVATAR
         ========================= */
-        setAvatar(info?.snippet?.thumbnails?.default?.url);
+        const avatar = info?.snippet?.thumbnails?.default?.url;
+        if(avatar){
+            document.getElementById("avatar").src = avatar;
+            cache.avatar = avatar;
+        }
 
         /* =========================
            LIVE STATE
@@ -271,41 +284,73 @@ async function updateDashboard(){
         if(isLive){
             dot.className = "status-dot online";
             status.textContent = "LIVE";
-
             document.getElementById("streamTitle").textContent =
                 live.items[0].snippet.title;
-
         }else{
             dot.className = "status-dot offline";
             status.textContent = "OFFLINE";
-
             document.getElementById("streamTitle").textContent =
                 "No Active Stream";
         }
 
+        /* =========================
+           VIEWERS (LIVE ONLY)
+        ========================= */
+
+        const liveItem = live?.items?.[0];
+
+        const currentViewers = Number(
+            liveItem?.liveStreamingDetails?.concurrentViewers ??
+            viewerStats.current
+        );
+
+        viewerStats.current = currentViewers;
+
+        document.getElementById("viewers").textContent =
+            viewerStats.current.toLocaleString();
+
+        /* =========================
+           PEAK VIEWERS (SESSION)
+        ========================= */
+
+        if(currentViewers > viewerStats.peak){
+            viewerStats.peak = currentViewers;
+
+            localStorage.setItem(
+                "peakViewers",
+                viewerStats.peak
+            );
+        }
+
+        document.getElementById("peakViewers").textContent =
+            viewerStats.peak.toLocaleString();
+
     }catch(err){
         console.error(err);
 
-        /* =========================
-           HARD FALLBACK (CRITICAL FIX)
-        ========================= */
+        errorBox.style.display = "block";
 
-        document.getElementById("error").style.display = "block";
+        /* =========================
+           FALLBACK SAFE STATE
+        ========================= */
 
         setSubs(cache.subs);
         setGoal(cache.subs);
 
-        document.getElementById("streamTitle").textContent =
-            "Using cached data";
+        document.getElementById("viewers").textContent =
+            viewerStats.current.toLocaleString();
+
+        document.getElementById("peakViewers").textContent =
+            viewerStats.peak.toLocaleString();
     }
 }
 
 /* =========================
-   START LOOP
+   START
 ========================= */
 
-updateDashboard();
-setInterval(updateDashboard, CONFIG.REFRESH);
+update();
+setInterval(update, CONFIG.REFRESH);
 
 </script>
 
