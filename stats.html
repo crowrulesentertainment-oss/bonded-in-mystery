@@ -1,36 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CrowRules Live Overlay SAFE</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+    --bg:#0b0f14;
+    --panel:#111826;
+    --border:#243244;
+    --text:#d7e1ea;
+    --accent:#00d4ff;
+}
+
+body{
+    margin:0;
+    overflow:hidden;
+    background:transparent;
+    font-family:Orbitron, sans-serif;
+}
+
+/* HUD */
+#hud{
+    position:absolute;
+    bottom:25px;
+    left:50%;
+    transform:translateX(-50%);
+    width:1020px;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:14px 18px;
+
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:14px;
+
+    box-shadow:0 0 18px rgba(0,0,0,0.6);
+}
+
+/* BLOCKS */
+.block{
+    flex:1;
+    text-align:center;
+    padding:8px;
+    background:linear-gradient(180deg,var(--panel),#0f1623);
+    border:1px solid var(--border);
+    border-radius:10px;
+    margin:0 6px;
+}
+
+.label{
+    font-size:10px;
+    opacity:0.6;
+    color:var(--text);
+    letter-spacing:1.2px;
+}
+
+.value{
+    font-size:20px;
+    font-weight:800;
+    color:var(--accent);
+}
+
+/* GOAL */
+.goal{
+    flex:1.6;
+    text-align:center;
+    padding:8px;
+    background:linear-gradient(180deg,var(--panel),#0f1623);
+    border:1px solid var(--border);
+    border-radius:10px;
+}
+
+.bar{
+    width:100%;
+    height:10px;
+    background:#0a111b;
+    border-radius:6px;
+    overflow:hidden;
+    margin-top:6px;
+    border:1px solid var(--border);
+}
+
+.fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#00d4ff,#00ff9d);
+    transition:width .4s ease;
+}
+
+/* STATUS */
+#status{
+    position:absolute;
+    top:6px;
+    right:12px;
+    font-size:10px;
+    opacity:0.5;
+    color:var(--text);
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+
+    <div class="block">
+        <div class="label">VIEWERS</div>
+        <div class="value" id="viewers">0</div>
+    </div>
+
+    <div class="block">
+        <div class="label">PEAK</div>
+        <div class="value" id="peak">0</div>
+    </div>
+
+    <div class="block">
+        <div class="label">SUBS</div>
+        <div class="value" id="subs">0</div>
+    </div>
+
+    <div class="goal">
+        <div class="label">SUB GOAL (1000)</div>
+        <div class="bar">
+            <div class="fill" id="bar"></div>
+        </div>
+    </div>
+
+</div>
+
+<div id="status">INIT</div>
+
 <script>
 const CONFIG = {
     apiKey: "AIzaSyArQ6fqOxl8jenWZME2z1qwhd8qBNPD0KI",
     channelId: "UCOSm_4z9LIQUWHOc8yzPgkw",
     goal: 1000,
     interval: 5000,
-    cacheKey: "crowrules_hud_safe_v4"
+    cacheKey: "crowrules_overlay_safe"
 };
 
-/* STATE = ALWAYS FALLBACK SAFE */
 let state = {
     viewers: 0,
     peak: 0,
     subs: 0,
-    lastGoodSubs: 0,
-    lastGoodViewers: 0,
-    lastUpdate: Date.now()
+    lastSubs: 0
 };
 
-/* ELEMENTS */
 const el = {
     viewers: document.getElementById("viewers"),
     peak: document.getElementById("peak"),
     subs: document.getElementById("subs"),
     bar: document.getElementById("bar"),
-    status: document.getElementById("status"),
-    hud: document.getElementById("hud")
+    status: document.getElementById("status")
 };
 
-/* =========================
-   CACHE SYSTEM (CRITICAL SAFETY)
-========================= */
-function loadCache(){
+/* CACHE (CRITICAL FOR OBS SAFETY) */
+function load(){
     const saved = localStorage.getItem(CONFIG.cacheKey);
     if(saved){
         state = {...state, ...JSON.parse(saved)};
@@ -38,135 +169,93 @@ function loadCache(){
     render();
 }
 
-function saveCache(){
+function save(){
     localStorage.setItem(CONFIG.cacheKey, JSON.stringify(state));
 }
 
-/* =========================
-   SAFE RENDER (NEVER BREAK UI)
-========================= */
-function render(){
-    el.subs.innerText = state.subs;
-    el.peak.innerText = state.peak;
-    el.viewers.innerText = state.viewers;
-
-    const percent = (state.subs / CONFIG.goal) * 100;
-    el.bar.style.width = Math.min(percent, 100) + "%";
-}
-
-/* =========================
-   SAFE FETCH WRAPPER
-========================= */
+/* SAFE FETCH */
 async function safeFetch(url){
     try{
         const res = await fetch(url);
-        if(!res.ok) throw new Error("Bad response");
+        if(!res.ok) return null;
         return await res.json();
-    }catch(err){
+    }catch{
         return null;
     }
 }
 
-/* =========================
-   GET SUBSCRIBERS (SAFE)
-========================= */
-async function fetchSubs(){
+/* SUBSCRIBERS */
+async function getSubs(){
     const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CONFIG.channelId}&key=${CONFIG.apiKey}`;
-
     const data = await safeFetch(url);
 
-    if(data?.items?.[0]?.statistics?.subscriberCount){
-        return parseInt(data.items[0].statistics.subscriberCount);
-    }
-
-    return null;
+    return data?.items?.[0]?.statistics?.subscriberCount
+        ? parseInt(data.items[0].statistics.subscriberCount)
+        : null;
 }
 
-/* =========================
-   GET LIVE VIEWERS (SAFE)
-========================= */
-async function fetchLiveViewers(){
+/* LIVE VIEWERS */
+async function getViewers(){
     const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${CONFIG.channelId}&eventType=live&type=video&key=${CONFIG.apiKey}`;
-
     const search = await safeFetch(searchUrl);
 
     const videoId = search?.items?.[0]?.id?.videoId;
-
     if(!videoId) return null;
 
     const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${CONFIG.apiKey}`;
-
     const video = await safeFetch(videoUrl);
 
-    const viewers = video?.items?.[0]?.liveStreamingDetails?.concurrentViewers;
-
-    return viewers ? parseInt(viewers) : null;
+    return video?.items?.[0]?.liveStreamingDetails?.concurrentViewers
+        ? parseInt(video.items[0].liveStreamingDetails.concurrentViewers)
+        : null;
 }
 
-/* =========================
-   UPDATE ENGINE (FAILSAFE CORE)
-========================= */
+/* RENDER (NEVER BREAKS) */
+function render(){
+    el.viewers.innerText = state.viewers;
+    el.peak.innerText = state.peak;
+    el.subs.innerText = state.subs;
+
+    let percent = (state.subs / CONFIG.goal) * 100;
+    el.bar.style.width = Math.min(percent,100) + "%";
+}
+
+/* UPDATE LOOP */
 async function update(){
-    el.status.innerText = "SYNCING";
-    el.status.style.color = "#00d4ff";
+    el.status.innerText = "SYNC";
 
     const [subs, viewers] = await Promise.all([
-        fetchSubs(),
-        fetchLiveViewers()
+        getSubs(),
+        getViewers()
     ]);
 
-    /* SUBSCRIBERS (CRITICAL: fallback safe) */
+    /* SUBS SAFE */
     if(subs !== null){
         state.subs = subs;
-        state.lastGoodSubs = subs;
+        state.lastSubs = subs;
     } else {
-        state.subs = state.lastGoodSubs;
+        state.subs = state.lastSubs;
     }
 
-    /* VIEWERS (ONLY IF LIVE) */
+    /* VIEWERS SAFE */
     if(viewers !== null){
         state.viewers = viewers;
-        state.lastGoodViewers = viewers;
-
-        if(viewers > state.peak){
-            state.peak = viewers;
-        }
-
+        if(viewers > state.peak) state.peak = viewers;
         el.status.innerText = "LIVE";
-        el.status.style.color = "#00ff9d";
     } else {
         state.viewers = 0;
         el.status.innerText = "OFFLINE";
-        el.status.style.color = "#ff4d4d";
     }
-
-    state.lastUpdate = Date.now();
 
     render();
-    saveCache();
+    save();
 }
 
-/* =========================
-   AUTO RECOVERY LOOP
-========================= */
-function recoveryCheck(){
-    const stale = Date.now() - state.lastUpdate > 20000;
-
-    if(stale){
-        state.subs = state.lastGoodSubs;
-        state.viewers = 0;
-        el.status.innerText = "DEGRADED";
-        el.status.style.color = "#ffb300";
-        render();
-    }
-}
-
-/* =========================
-   INIT
-========================= */
-loadCache();
+/* INIT */
+load();
 update();
-
 setInterval(update, CONFIG.interval);
-setInterval(recoveryCheck, 5000);
 </script>
+
+</body>
+</html>
