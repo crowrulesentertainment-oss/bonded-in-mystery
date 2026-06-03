@@ -1,320 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Dashboard V13 Stable</title>
+<?php
+header("Content-Type: application/json");
+header("Access-Control-Allow-Origin: *");
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
-
-<style>
-
-:root{
-    --bg:rgba(0,0,0,0.88);
-    --panel:rgba(10,10,12,0.92);
-    --border:rgba(255,255,255,0.10);
-
-    --live:#00ff88;
-    --offline:#ff4d4d;
-    --subs:#00e5ff;
-    --goal:#ffcc66;
-    --text:#ffffff;
-}
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
-body{
-    background:transparent;
-    overflow:hidden;
-    font-family:'Orbitron',sans-serif;
-}
-
-/* DASHBOARD WRAP */
-#dashboard{
-    position:absolute;
-    top:15px;
-    right:15px;
-
-    display:flex;
-    align-items:center;
-    gap:8px;
-    flex-wrap:wrap;
-
-    padding:6px;
-    border-radius:14px;
-
-    background:rgba(0,0,0,0.25);
-}
-
-/* PANEL */
-.panel{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:12px;
-
-    padding:8px 12px;
-
-    display:flex;
-    align-items:center;
-    gap:6px;
-
-    color:white;
-    font-size:13px;
-    font-weight:800;
-
-    box-shadow:0 6px 18px rgba(0,0,0,0.6);
-}
-
-.label{
-    font-size:9px;
-    color:#aaa;
-    letter-spacing:1px;
-}
-
-.subs{ color:var(--subs); }
-.goal{ color:var(--goal); }
-
-/* STATUS DOT */
-.status-dot{
-    width:10px;
-    height:10px;
-    border-radius:50%;
-}
-
-.online{ background:var(--live); }
-.offline{ background:var(--offline); }
-
-/* GOAL BAR */
-.goal-wrap{
-    width:120px;
-    height:7px;
-    background:#111;
-    border-radius:999px;
-    overflow:hidden;
-}
-
-.goal-bar{
-    width:0%;
-    height:100%;
-    background:linear-gradient(90deg,#00e5ff,#00ff88);
-    transition:width 0.6s ease;
-}
-
-</style>
-</head>
-
-<body>
-
-<div id="dashboard">
-
-    <div class="status-dot offline" id="dot"></div>
-
-    <div class="panel">
-        <span class="label">LIVE</span>
-        <span id="liveStatus">OFFLINE</span>
-    </div>
-
-    <div class="panel">
-        <span class="label">SUBS</span>
-        <span class="subs" id="subs">0</span>
-    </div>
-
-    <div class="panel">
-        <span class="label">GOAL</span>
-        <span class="goal" id="goalText">1000 LEFT</span>
-    </div>
-
-    <div class="goal-wrap">
-        <div class="goal-bar" id="goalBar"></div>
-    </div>
-
-    <div class="panel">
-        <span class="label">VIEWERS</span>
-        <span id="viewers">0</span>
-    </div>
-
-    <div class="panel">
-        <span class="label">PEAK</span>
-        <span id="peakViewers">0</span>
-    </div>
-
-    <div class="panel">
-        <span class="label">STREAM</span>
-        <span id="streamTitle">Waiting...</span>
-    </div>
-
-</div>
-
-<script>
+$API_KEY = "YOUR_YOUTUBE_API_KEY_HERE";
+$CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
 
 /* =========================
-   CONFIG
+   SAFE CURL FETCH
 ========================= */
 
-const API_KEY = window.YT_API_KEY || "";
-const CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
-const SUB_GOAL = 1000;
-const REFRESH = 30000;
+function fetchUrl($url){
+    $ch = curl_init();
 
-/* =========================
-   STATE (FULL SAFETY)
-========================= */
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 
-const state = {
-    subs: Number(localStorage.getItem("subsCache") || 0),
-    peak: Number(localStorage.getItem("peakViewers") || 0)
-};
+    $output = curl_exec($ch);
 
-/* =========================
-   SAFE FETCH
-========================= */
-
-async function safeFetch(url){
-    try{
-        const res = await fetch(url);
-        const data = await res.json();
-        return data?.error ? null : data;
-    }catch{
+    if(curl_errno($ch)){
+        curl_close($ch);
         return null;
     }
+
+    curl_close($ch);
+    return json_decode($output, true);
 }
 
 /* =========================
-   CHANNEL DATA
+   CHANNEL STATS
 ========================= */
 
-async function getChannel(){
-    const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
-    return await safeFetch(url);
-}
+$channelUrl = "https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=$CHANNEL_ID&key=$API_KEY";
+$channel = fetchUrl($channelUrl);
 
 /* =========================
    LIVE DATA
 ========================= */
 
-async function getLive(){
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`;
-    return await safeFetch(url);
-}
+$liveUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=$CHANNEL_ID&eventType=live&type=video&key=$API_KEY";
+$live = fetchUrl($liveUrl);
 
 /* =========================
-   SUBS (ALWAYS SAFE)
+   OUTPUT CLEAN JSON
 ========================= */
 
-function renderSubs(channel){
-
-    const apiSubs =
-        Number(channel?.items?.[0]?.statistics?.subscriberCount);
-
-    if(!isNaN(apiSubs) && apiSubs > 0){
-        state.subs = apiSubs;
-        localStorage.setItem("subsCache", apiSubs);
-    }
-
-    document.getElementById("subs").textContent =
-        state.subs.toLocaleString();
-
-    return state.subs;
-}
-
-/* =========================
-   GOAL (ALWAYS ACTIVE)
-========================= */
-
-function renderGoal(subs){
-
-    const remaining = Math.max(SUB_GOAL - subs, 0);
-    const percent = Math.min((subs / SUB_GOAL) * 100, 100);
-
-    document.getElementById("goalText").textContent =
-        `${remaining.toLocaleString()} LEFT`;
-
-    document.getElementById("goalBar").style.width =
-        percent + "%";
-}
-
-/* =========================
-   LIVE STATUS
-========================= */
-
-function renderLive(live){
-
-    const isLive = (live?.items?.length ?? 0) > 0;
-
-    document.getElementById("dot").className =
-        "status-dot " + (isLive ? "online" : "offline");
-
-    document.getElementById("liveStatus").textContent =
-        isLive ? "LIVE" : "OFFLINE";
-
-    document.getElementById("streamTitle").textContent =
-        isLive ? live.items[0].snippet.title : "No Active Stream";
-
-    return isLive;
-}
-
-/* =========================
-   VIEWERS + PEAK
-========================= */
-
-function renderViewers(live){
-
-    const liveItem = live?.items?.[0];
-
-    const current =
-        Number(liveItem?.liveStreamingDetails?.concurrentViewers ?? 0);
-
-    document.getElementById("viewers").textContent =
-        current.toLocaleString();
-
-    if(current > state.peak){
-        state.peak = current;
-        localStorage.setItem("peakViewers", state.peak);
-    }
-
-    document.getElementById("peakViewers").textContent =
-        state.peak.toLocaleString();
-}
-
-/* =========================
-   MAIN LOOP
-========================= */
-
-async function update(){
-
-    const channel = await getChannel();
-    const live = await getLive();
-
-    const subs = renderSubs(channel);
-    renderGoal(subs);
-
-    renderLive(live);
-    renderViewers(live);
-}
-
-/* =========================
-   INIT (NO BLANK STATES EVER)
-========================= */
-
-function init(){
-
-    // immediate safe render (OBS stability)
-    document.getElementById("subs").textContent =
-        state.subs.toLocaleString();
-
-    renderGoal(state.subs);
-
-    update();
-    setInterval(update, REFRESH);
-}
-
-init();
-
-</script>
-
-</body>
-</html>
+echo json_encode([
+    "subs" => $channel["items"][0]["statistics"]["subscriberCount"] ?? 0,
+    "title" => $channel["items"][0]["snippet"]["title"] ?? "Unknown Channel",
+    "live" => $live["items"][0]["snippet"]["title"] ?? null,
+    "isLive" => !empty($live["items"]),
+    "videoId" => $live["items"][0]["id"]["videoId"] ?? null
+]);
+?>
