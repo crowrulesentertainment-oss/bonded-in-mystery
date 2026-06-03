@@ -1,249 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>CrowRules Safe HUD</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YouTube Live Overlay Bar</title>
 
 <style>
-:root{
-    --bg:#0b0f14;
-    --panel:#111826;
-    --border:#243244;
-    --text:#d7e1ea;
-    --accent:#00d4ff;
-}
+    body {
+        margin: 0;
+        background: transparent;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+    }
 
-body{
-    margin:0;
-    overflow:hidden;
-    background:transparent;
-    font-family:Orbitron, sans-serif;
-}
+    .bar {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        padding: 10px;
+        background: rgba(0,0,0,0.35);
+        border-radius: 14px;
+        backdrop-filter: blur(10px);
+    }
 
-/* HUD */
-#hud{
-    position:absolute;
-    bottom:25px;
-    left:50%;
-    transform:translateX(-50%);
-    width:1020px;
+    .box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        background: rgba(20,20,20,0.75);
+        border-radius: 10px;
+        color: white;
+        font-size: 13px;
+        white-space: nowrap;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
 
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
+    .icon {
+        opacity: 0.8;
+    }
 
-    padding:14px 18px;
+    .live {
+        background: rgba(200,0,0,0.75);
+        font-weight: bold;
+    }
 
-    background:var(--bg);
-    border:1px solid var(--border);
-    border-radius:14px;
-
-    box-shadow:0 0 18px rgba(0,0,0,0.6);
-}
-
-/* BLOCKS */
-.block{
-    flex:1;
-    text-align:center;
-    padding:10px;
-    margin:0 6px;
-
-    background:linear-gradient(180deg,var(--panel),#0f1623);
-    border:1px solid var(--border);
-    border-radius:10px;
-}
-
-.label{
-    font-size:10px;
-    opacity:0.6;
-    color:var(--text);
-    letter-spacing:1.2px;
-}
-
-.value{
-    font-size:20px;
-    font-weight:800;
-    color:var(--accent);
-}
-
-/* GOAL */
-.goal{
-    flex:1.6;
-    text-align:center;
-    padding:10px;
-
-    background:linear-gradient(180deg,var(--panel),#0f1623);
-    border:1px solid var(--border);
-    border-radius:10px;
-}
-
-.bar{
-    width:100%;
-    height:10px;
-    background:#0a111b;
-    border-radius:6px;
-    overflow:hidden;
-    margin-top:6px;
-    border:1px solid var(--border);
-}
-
-.fill{
-    height:100%;
-    width:0%;
-    background:linear-gradient(90deg,#00d4ff,#00ff9d);
-    transition:width .5s ease;
-}
-
-/* STATUS */
-#status{
-    position:absolute;
-    top:6px;
-    right:12px;
-    font-size:10px;
-    opacity:0.5;
-    color:var(--text);
-}
+    .grow {
+        color: #00ffcc;
+    }
 </style>
 </head>
 
 <body>
 
-<div id="hud">
-
-    <div class="block">
-        <div class="label">VIEWERS</div>
-        <div class="value" id="viewers">0</div>
-    </div>
-
-    <div class="block">
-        <div class="label">PEAK</div>
-        <div class="value" id="peak">0</div>
-    </div>
-
-    <div class="block">
-        <div class="label">SUBS</div>
-        <div class="value" id="subs">0</div>
-    </div>
-
-    <div class="goal">
-        <div class="label">SUB GOAL (1000)</div>
-        <div class="bar">
-            <div class="fill" id="bar"></div>
-        </div>
-    </div>
-
+<div class="bar">
+    <div class="box live">🔴 LIVE</div>
+    <div class="box">👁 <span id="viewers">0</span></div>
+    <div class="box">📈 Peak <span id="peak">0</span></div>
+    <div class="box">⭐ Subs <span id="subs">0</span></div>
+    <div class="box">🎯 Goal <span id="goal">1000</span></div>
+    <div class="box">👍 <span id="likes">0</span></div>
+    <div class="box">🎬 <span id="title">Loading...</span></div>
 </div>
 
-<div id="status">SAFE MODE</div>
-
 <script>
-const CONFIG = {
-    apiKey: "AIzaSyArQ6fqOxl8jenWZME2z1qwhd8qBNPD0KI",
-    channelId: "UCOSm_4z9LIQUWHOc8yzPgkw",
-    goal: 1000,
-    interval: 5000,
-    cacheKey: "crowrules_safe_overlay"
-};
+const API_KEY = "AIzaSyArQ6fqOxl8jenWZME2z1qwhd8qBNPD0KI";
+const CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
+const SUB_GOAL = 1000;
 
-/* STATE (CRITICAL: ALWAYS HAS FALLBACK DATA) */
-let state = {
-    subs: 0,
-    peak: 0,
-    viewers: 0,
-    lastSubs: 0
-};
+let peakViewers = 0;
 
-/* ELEMENTS */
-const el = {
-    subs: document.getElementById("subs"),
-    viewers: document.getElementById("viewers"),
-    peak: document.getElementById("peak"),
-    bar: document.getElementById("bar"),
-    status: document.getElementById("status")
-};
+document.getElementById("goal").innerText = SUB_GOAL;
 
-/* =========================
-   CACHE LOAD (KEY FEATURE)
-========================= */
-function loadCache(){
-    const saved = localStorage.getItem(CONFIG.cacheKey);
-    if(saved){
-        state = { ...state, ...JSON.parse(saved) };
+// Fetch live data
+async function fetchData() {
+    try {
+        // Get channel stats
+        const channelRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${CHANNEL_ID}&key=${API_KEY}`
+        );
+        const channelData = await channelRes.json();
+
+        const subs = channelData.items[0].statistics.subscriberCount;
+        document.getElementById("subs").innerText = Number(subs).toLocaleString();
+
+        // Get live stream
+        const searchRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`
+        );
+        const searchData = await searchRes.json();
+
+        if (!searchData.items.length) return;
+
+        const videoId = searchData.items[0].id.videoId;
+        const title = searchData.items[0].snippet.title;
+
+        document.getElementById("title").innerText = title;
+
+        // Get live stats
+        const videoRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails,statistics&id=${videoId}&key=${API_KEY}`
+        );
+        const videoData = await videoRes.json();
+
+        const stats = videoData.items[0].statistics;
+        const live = videoData.items[0].liveStreamingDetails;
+
+        const viewers = live.concurrentViewers || 0;
+        const likes = stats.likeCount || 0;
+
+        document.getElementById("viewers").innerText = Number(viewers).toLocaleString();
+        document.getElementById("likes").innerText = Number(likes).toLocaleString();
+
+        // Peak viewer tracking (local session)
+        if (viewers > peakViewers) {
+            peakViewers = viewers;
+            document.getElementById("peak").innerText = peakViewers.toLocaleString();
+        }
+
+    } catch (err) {
+        console.error("API Error:", err);
     }
-    render();
 }
 
-/* CACHE SAVE */
-function saveCache(){
-    localStorage.setItem(CONFIG.cacheKey, JSON.stringify({
-        subs: state.subs,
-        peak: state.peak
-    }));
-}
-
-/* SAFE FETCH */
-async function safeFetch(url){
-    try{
-        const res = await fetch(url);
-        if(!res.ok) return null;
-        return await res.json();
-    }catch{
-        return null;
-    }
-}
-
-/* =========================
-   YOUTUBE SUBSCRIBERS ONLY
-========================= */
-async function getSubs(){
-    const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CONFIG.channelId}&key=${CONFIG.apiKey}`;
-
-    const data = await safeFetch(url);
-
-    return data?.items?.[0]?.statistics?.subscriberCount
-        ? parseInt(data.items[0].statistics.subscriberCount)
-        : null;
-}
-
-/* =========================
-   MAIN UPDATE LOOP
-========================= */
-async function update(){
-
-    const subs = await getSubs();
-
-    /* SUBS ALWAYS SAFE */
-    if(subs !== null){
-        state.subs = subs;
-        state.lastSubs = subs;
-        el.status.innerText = "LIVE SYNC";
-    } else {
-        state.subs = state.lastSubs;
-        el.status.innerText = "OFFLINE SAFE";
-    }
-
-    render();
-    saveCache();
-}
-
-/* =========================
-   RENDER (NEVER BREAK UI)
-========================= */
-function render(){
-    el.subs.innerText = state.subs;
-    el.viewers.innerText = state.viewers;
-    el.peak.innerText = state.peak;
-
-    let percent = (state.subs / CONFIG.goal) * 100;
-    el.bar.style.width = Math.min(percent, 100) + "%";
-}
-
-/* INIT */
-loadCache();
-update();
-setInterval(update, CONFIG.interval);
+// refresh loop
+fetchData();
+setInterval(fetchData, 10000);
 </script>
 
 </body>
