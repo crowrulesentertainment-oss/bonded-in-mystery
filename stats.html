@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Dashboard V9</title>
+<title>CrowRules Dashboard V11</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -33,7 +33,6 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
-/* DASHBOARD WRAP */
 #dashboard{
     position:absolute;
     top:15px;
@@ -50,7 +49,7 @@ body{
     background:rgba(0,0,0,0.25);
 }
 
-/* PANELS (READABLE DARK UI) */
+/* PANELS */
 .panel{
     background:var(--panel);
     border:1px solid var(--border);
@@ -62,51 +61,35 @@ body{
     align-items:center;
     gap:6px;
 
-    box-shadow:
-        0 6px 18px rgba(0,0,0,0.65),
-        inset 0 0 0 1px rgba(255,255,255,0.03);
+    color:white;
+    font-size:13px;
+    font-weight:800;
 }
 
 .label{
     font-size:9px;
+    color:#aaa;
     letter-spacing:1px;
-    color:#cfcfcf;
 }
 
-.value{
-    font-size:13px;
-    font-weight:800;
-    color:var(--text);
-    text-shadow:0 2px 6px rgba(0,0,0,0.85);
-}
-
-/* COLORS */
 .subs{ color:var(--subs); }
 .goal{ color:var(--goal); }
 .live{ color:var(--live); }
 
-/* STATUS DOT */
 .status-dot{
     width:10px;
     height:10px;
     border-radius:50%;
-    animation:pulse 1.5s infinite;
 }
 
 .online{ background:var(--live); }
 .offline{ background:var(--offline); }
 
-@keyframes pulse{
-    0%,100%{opacity:1;}
-    50%{opacity:0.25;}
-}
-
 /* GOAL BAR */
 .goal-wrap{
     width:120px;
     height:7px;
-    background:rgba(0,0,0,0.65);
-    border:1px solid rgba(255,255,255,0.08);
+    background:#111;
     border-radius:999px;
     overflow:hidden;
 }
@@ -118,24 +101,6 @@ body{
     transition:width 0.5s ease;
 }
 
-/* STREAM TITLE */
-#streamTitle{
-    max-width:260px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-}
-
-/* ERROR */
-#error{
-    position:absolute;
-    bottom:-20px;
-    right:0;
-    font-size:10px;
-    color:#ff4d4d;
-    display:none;
-}
-
 </style>
 </head>
 
@@ -145,43 +110,21 @@ body{
 
     <div class="status-dot offline" id="dot"></div>
 
-    <div class="panel">
-        <span class="label">LIVE</span>
-        <span class="value live" id="liveStatus">OFFLINE</span>
-    </div>
+    <div class="panel"><span class="label">LIVE</span><span id="liveStatus">OFFLINE</span></div>
 
-    <div class="panel">
-        <span class="label">SUBS</span>
-        <span class="value subs" id="subs">0</span>
-    </div>
+    <div class="panel"><span class="label">SUBS</span><span class="subs" id="subs">0</span></div>
 
-    <div class="panel">
-        <span class="label">GOAL</span>
-        <span class="value goal" id="goalText">0 LEFT</span>
-    </div>
+    <div class="panel"><span class="label">GOAL</span><span class="goal" id="goalText">0 LEFT</span></div>
 
-    <div class="goal-wrap">
-        <div class="goal-bar" id="goalBar"></div>
-    </div>
+    <div class="goal-wrap"><div class="goal-bar" id="goalBar"></div></div>
 
-    <div class="panel">
-        <span class="label">VIEWERS</span>
-        <span class="value" id="viewers">0</span>
-    </div>
+    <div class="panel"><span class="label">VIEWERS</span><span id="viewers">0</span></div>
 
-    <div class="panel">
-        <span class="label">PEAK</span>
-        <span class="value" id="peakViewers">0</span>
-    </div>
+    <div class="panel"><span class="label">PEAK</span><span id="peakViewers">0</span></div>
 
-    <div class="panel">
-        <span class="label">STREAM</span>
-        <span class="value" id="streamTitle">Waiting...</span>
-    </div>
+    <div class="panel"><span class="label">STREAM</span><span id="streamTitle">Waiting...</span></div>
 
 </div>
-
-<div id="error">API error (using cached data)</div>
 
 <script>
 
@@ -189,15 +132,13 @@ body{
    CONFIG
 ========================= */
 
-const CONFIG = {
-    API_KEY: window.YT_API_KEY || "",
-    CHANNEL_ID: "UCOSm_4z9LIQUWHOc8yzPgkw",
-    SUB_GOAL: 1000,
-    REFRESH: 30000
-};
+const API_KEY = window.YT_API_KEY || "";
+const CHANNEL_ID = "UCOSm_4z9LIQUWHOc8yzPgkw";
+const SUB_GOAL = 1000;
+const REFRESH = 30000;
 
 /* =========================
-   STATE (CRITICAL STABILITY LAYER)
+   STATE
 ========================= */
 
 let cache = {
@@ -217,13 +158,10 @@ async function ytFetch(url){
     try{
         const res = await fetch(url);
         const data = await res.json();
-
         if(data?.error) throw new Error(data.error.message);
-
         return data;
-
-    }catch(err){
-        console.warn("API error:", err);
+    }catch(e){
+        console.warn("API error:", e);
         return null;
     }
 }
@@ -232,28 +170,27 @@ async function ytFetch(url){
    API
 ========================= */
 
-async function fetchChannel(){
+async function getChannel(){
     return ytFetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CONFIG.CHANNEL_ID}&key=${CONFIG.API_KEY}`
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CHANNEL_ID}&key=${API_KEY}`
     );
 }
 
-async function fetchLive(){
+async function getLive(){
     return ytFetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CONFIG.CHANNEL_ID}&eventType=live&type=video&key=${CONFIG.API_KEY}`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`
     );
 }
 
 /* =========================
-   SUBSCRIBERS (ALWAYS SAFE)
+   SUBS (ALWAYS SAFE)
 ========================= */
 
 function renderSubs(channel){
 
     let subs = cache.lastSubs;
 
-    const apiSubs =
-        channel?.items?.[0]?.statistics?.subscriberCount;
+    const apiSubs = channel?.items?.[0]?.statistics?.subscriberCount;
 
     if(apiSubs !== undefined){
         subs = Number(apiSubs);
@@ -267,20 +204,66 @@ function renderSubs(channel){
 }
 
 /* =========================
-   GOAL (ALWAYS RENDERS)
+   GOAL (ALWAYS INDEPENDENT)
 ========================= */
 
 function renderGoal(subs){
 
-    const remaining = Math.max(CONFIG.SUB_GOAL - subs, 0);
+    const remaining = Math.max(SUB_GOAL - subs, 0);
+    const percent = Math.min((subs / SUB_GOAL) * 100, 100);
 
     document.getElementById("goalText").textContent =
         `${remaining.toLocaleString()} LEFT`;
 
-    const percent = Math.min((subs / CONFIG.SUB_GOAL) * 100, 100);
-
     document.getElementById("goalBar").style.width =
         percent + "%";
+}
+
+/* =========================
+   LIVE
+========================= */
+
+function renderLive(live){
+
+    const isLive = (live?.items?.length ?? 0) > 0;
+
+    document.getElementById("dot").className =
+        "status-dot " + (isLive ? "online" : "offline");
+
+    document.getElementById("liveStatus").textContent =
+        isLive ? "LIVE" : "OFFLINE";
+
+    document.getElementById("streamTitle").textContent =
+        isLive ? live.items[0].snippet.title : "No Active Stream";
+
+    return isLive;
+}
+
+/* =========================
+   VIEWERS + PEAK
+========================= */
+
+function renderViewers(live){
+
+    const liveItem = live?.items?.[0];
+
+    const current = Number(
+        liveItem?.liveStreamingDetails?.concurrentViewers ??
+        viewerStats.current
+    );
+
+    viewerStats.current = current;
+
+    document.getElementById("viewers").textContent =
+        current.toLocaleString();
+
+    if(current > viewerStats.peak){
+        viewerStats.peak = current;
+        localStorage.setItem("peakViewers", viewerStats.peak);
+    }
+
+    document.getElementById("peakViewers").textContent =
+        viewerStats.peak.toLocaleString();
 }
 
 /* =========================
@@ -289,77 +272,23 @@ function renderGoal(subs){
 
 async function update(){
 
-    const errorBox = document.getElementById("error");
+    const [channel, live] = await Promise.all([
+        getChannel(),
+        getLive()
+    ]);
 
-    try{
-        errorBox.style.display = "none";
+    // 🔥 SUBS ALWAYS FIRST (NO DEPENDENCY ON LIVE)
+    const subs = renderSubs(channel);
+    renderGoal(subs);
 
-        const [channel, live] = await Promise.all([
-            fetchChannel(),
-            fetchLive()
-        ]);
-
-        /* =========================
-           SUBS + GOAL (INDEPENDENT)
-        ========================= */
-        const subs = renderSubs(channel);
-        renderGoal(subs);
-
-        /* =========================
-           LIVE STATE (NO IMPACT ON SUBS)
-        ========================= */
-        const isLive = (live?.items?.length ?? 0) > 0;
-
-        document.getElementById("dot").className =
-            "status-dot " + (isLive ? "online" : "offline");
-
-        document.getElementById("liveStatus").textContent =
-            isLive ? "LIVE" : "OFFLINE";
-
-        document.getElementById("streamTitle").textContent =
-            isLive ? live.items[0].snippet.title : "No Active Stream";
-
-        /* =========================
-           VIEWERS
-        ========================= */
-        const liveItem = live?.items?.[0];
-
-        const currentViewers = Number(
-            liveItem?.liveStreamingDetails?.concurrentViewers ??
-            viewerStats.current
-        );
-
-        viewerStats.current = currentViewers;
-
-        document.getElementById("viewers").textContent =
-            currentViewers.toLocaleString();
-
-        /* =========================
-           PEAK VIEWERS
-        ========================= */
-        if(currentViewers > viewerStats.peak){
-            viewerStats.peak = currentViewers;
-            localStorage.setItem("peakViewers", viewerStats.peak);
-        }
-
-        document.getElementById("peakViewers").textContent =
-            viewerStats.peak.toLocaleString();
-
-    }catch(err){
-        console.error(err);
-        errorBox.style.display = "block";
-
-        /* SAFE FALLBACK (NO UI BREAK) */
-        renderGoal(cache.lastSubs);
-
-        document.getElementById("subs").textContent =
-            cache.lastSubs.toLocaleString();
-    }
+    // 🔥 LIVE DOES NOT CONTROL SUBS
+    renderLive(live);
+    renderViewers(live);
 }
 
 /* START */
 update();
-setInterval(update, CONFIG.REFRESH);
+setInterval(update, REFRESH);
 
 </script>
 
