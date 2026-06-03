@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CrowRules Dashboard V11</title>
+<title>CrowRules Dashboard V12 Episode Build</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 
@@ -33,6 +33,7 @@ body{
     font-family:'Orbitron',sans-serif;
 }
 
+/* DASHBOARD WRAP */
 #dashboard{
     position:absolute;
     top:15px;
@@ -49,7 +50,7 @@ body{
     background:rgba(0,0,0,0.25);
 }
 
-/* PANELS */
+/* PANEL */
 .panel{
     background:var(--panel);
     border:1px solid var(--border);
@@ -64,6 +65,8 @@ body{
     color:white;
     font-size:13px;
     font-weight:800;
+
+    box-shadow:0 6px 18px rgba(0,0,0,0.6);
 }
 
 .label{
@@ -76,6 +79,7 @@ body{
 .goal{ color:var(--goal); }
 .live{ color:var(--live); }
 
+/* STATUS DOT */
 .status-dot{
     width:10px;
     height:10px;
@@ -98,7 +102,7 @@ body{
     width:0%;
     height:100%;
     background:linear-gradient(90deg,#00e5ff,#00ff88);
-    transition:width 0.5s ease;
+    transition:width 0.6s ease;
 }
 
 </style>
@@ -129,7 +133,7 @@ body{
 <script>
 
 /* =========================
-   CONFIG
+   CONFIG (SAFE HANDLING)
 ========================= */
 
 const API_KEY = window.YT_API_KEY || "";
@@ -138,11 +142,12 @@ const SUB_GOAL = 1000;
 const REFRESH = 30000;
 
 /* =========================
-   STATE
+   CACHE (CRITICAL FOR STABILITY)
 ========================= */
 
 let cache = {
-    lastSubs: 0
+    lastSubs: 0,
+    lastGoodChannel: null
 };
 
 let viewerStats = {
@@ -151,51 +156,72 @@ let viewerStats = {
 };
 
 /* =========================
-   SAFE FETCH
+   SAFE FETCH (NEVER BREAK UI)
 ========================= */
 
 async function ytFetch(url){
+
     try{
         const res = await fetch(url);
         const data = await res.json();
-        if(data?.error) throw new Error(data.error.message);
+
+        if(data?.error){
+            console.warn("YT API ERROR:", data.error.message);
+            return null;
+        }
+
         return data;
-    }catch(e){
-        console.warn("API error:", e);
+
+    }catch(err){
+        console.warn("NETWORK ERROR:", err);
         return null;
     }
 }
 
 /* =========================
-   API
+   CHANNEL API
 ========================= */
 
 async function getChannel(){
-    return ytFetch(
-        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CHANNEL_ID}&key=${API_KEY}`
-    );
-}
 
-async function getLive(){
-    return ytFetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`
-    );
+    const url =
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
+
+    const data = await ytFetch(url);
+
+    if(data?.items?.length){
+        cache.lastGoodChannel = data;
+    }
+
+    return data || cache.lastGoodChannel;
 }
 
 /* =========================
-   SUBS (ALWAYS SAFE)
+   LIVE API
+========================= */
+
+async function getLive(){
+
+    const url =
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`;
+
+    return await ytFetch(url);
+}
+
+/* =========================
+   SUBSCRIBERS (ALWAYS SAFE)
 ========================= */
 
 function renderSubs(channel){
 
-    let subs = cache.lastSubs;
+    const apiSubs =
+        Number(channel?.items?.[0]?.statistics?.subscriberCount);
 
-    const apiSubs = channel?.items?.[0]?.statistics?.subscriberCount;
-
-    if(apiSubs !== undefined){
-        subs = Number(apiSubs);
-        cache.lastSubs = subs;
+    if(!isNaN(apiSubs) && apiSubs > 0){
+        cache.lastSubs = apiSubs;
     }
+
+    const subs = cache.lastSubs;
 
     document.getElementById("subs").textContent =
         subs.toLocaleString();
@@ -204,7 +230,7 @@ function renderSubs(channel){
 }
 
 /* =========================
-   GOAL (ALWAYS INDEPENDENT)
+   GOAL (ALWAYS RENDERS)
 ========================= */
 
 function renderGoal(subs){
@@ -220,7 +246,7 @@ function renderGoal(subs){
 }
 
 /* =========================
-   LIVE
+   LIVE STATUS
 ========================= */
 
 function renderLive(live){
@@ -247,10 +273,8 @@ function renderViewers(live){
 
     const liveItem = live?.items?.[0];
 
-    const current = Number(
-        liveItem?.liveStreamingDetails?.concurrentViewers ??
-        viewerStats.current
-    );
+    const current =
+        Number(liveItem?.liveStreamingDetails?.concurrentViewers ?? viewerStats.current);
 
     viewerStats.current = current;
 
@@ -267,7 +291,7 @@ function renderViewers(live){
 }
 
 /* =========================
-   MAIN LOOP
+   MASTER LOOP (EPISODE CORE)
 ========================= */
 
 async function update(){
@@ -277,16 +301,16 @@ async function update(){
         getLive()
     ]);
 
-    // 🔥 SUBS ALWAYS FIRST (NO DEPENDENCY ON LIVE)
+    /* 🔥 SUBS ALWAYS FIRST (NO DEPENDENCIES) */
     const subs = renderSubs(channel);
     renderGoal(subs);
 
-    // 🔥 LIVE DOES NOT CONTROL SUBS
+    /* 🔥 LIVE IS INDEPENDENT */
     renderLive(live);
     renderViewers(live);
 }
 
-/* START */
+/* START SYSTEM */
 update();
 setInterval(update, REFRESH);
 
