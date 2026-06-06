@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Spectrum Awards Overlay</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body{
+    overflow:hidden;
+    background:transparent;
+}
+
+/* MAIN BAR */
+
+#broadcast-bar{
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    height:90px;
+
+    backdrop-filter: blur(15px);
+    background:rgba(0,0,0,.55);
+
+    border-top:1px solid rgba(255,255,255,.15);
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    padding:0 35px;
+}
+
+/* SPECTRUM BEAM */
+
+#beam{
+    position:absolute;
+    top:0;
+    left:-25%;
+    width:25%;
+    height:100%;
+
+    background:linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,.25),
+        rgba(255,0,0,.25),
+        rgba(255,127,0,.25),
+        rgba(255,255,0,.25),
+        rgba(0,255,0,.25),
+        rgba(0,255,255,.25),
+        rgba(0,0,255,.25),
+        rgba(139,0,255,.25),
+        transparent
+    );
+
+    animation:beamMove 8s linear infinite;
+}
+
+@keyframes beamMove{
+    from{
+        left:-30%;
+    }
+
+    to{
+        left:130%;
+    }
+}
+
+/* LEFT */
+
+.left{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    z-index:5;
+}
+
+/* PRISM */
+
+.prism{
+    width:42px;
+    height:42px;
+
+    border:2px solid white;
+
+    clip-path: polygon(
+        50% 0%,
+        0% 100%,
+        100% 100%
+    );
+}
+
+/* TITLE */
+
+.brand{
+    display:flex;
+    flex-direction:column;
+}
+
+.brand .main{
+    color:white;
+    font-size:24px;
+    font-weight:800;
+    letter-spacing:2px;
+}
+
+.brand .sub{
+    color:#b9b9b9;
+    font-size:11px;
+    letter-spacing:3px;
+}
+
+/* CENTER */
+
+.center{
+    text-align:center;
+    z-index:5;
+}
+
+.category{
+    color:white;
+    font-size:28px;
+    font-weight:700;
+    text-transform:uppercase;
+}
+
+.category-line{
+    margin-top:6px;
+    height:4px;
+    width:300px;
+    border-radius:999px;
+
+    background:linear-gradient(
+        90deg,
+        red,
+        orange,
+        yellow,
+        lime,
+        cyan,
+        blue,
+        violet
+    );
+}
+
+/* RIGHT */
+
+.right{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    z-index:5;
+}
+
+.host{
+    text-align:right;
+}
+
+.host-name{
+    color:white;
+    font-size:18px;
+    font-weight:700;
+}
+
+.host-role{
+    color:#cccccc;
+    font-size:12px;
+    letter-spacing:1px;
+}
+
+.live{
+    background:#d90000;
+    color:white;
+
+    padding:8px 16px;
+
+    border-radius:999px;
+
+    font-size:13px;
+    font-weight:700;
+
+    animation:pulse 2s infinite;
+}
+
+@keyframes pulse{
+
+    0%{
+        box-shadow:0 0 0 0 rgba(255,0,0,.8);
+    }
+
+    70%{
+        box-shadow:0 0 0 12px rgba(255,0,0,0);
+    }
+
+    100%{
+        box-shadow:0 0 0 0 rgba(255,0,0,0);
+    }
+}
+
+/* TOP CORNER BUG */
+
+#cornerBug{
+    position:absolute;
+    top:20px;
+    right:20px;
+
+    background:rgba(0,0,0,.45);
+    backdrop-filter:blur(12px);
+
+    border:1px solid rgba(255,255,255,.15);
+
+    border-radius:10px;
+
+    padding:10px 16px;
+
+    text-align:center;
+}
+
+#cornerBug .logo{
+    color:white;
+    font-weight:800;
+    letter-spacing:2px;
+    font-size:13px;
+}
+
+#cornerBug .status{
+    color:#ff4a4a;
+    font-size:10px;
+    margin-top:2px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="cornerBug">
+    <div class="logo">SPECTRUM</div>
+    <div class="status">LIVE</div>
+</div>
+
+<div id="broadcast-bar">
+
+    <div id="beam"></div>
+
+    <div class="left">
+        <div class="prism"></div>
+
+        <div class="brand">
+            <div class="main">SPECTRUM</div>
+            <div class="sub">ALL ENTERTAINMENT. ONE SPECTRUM.</div>
+        </div>
+    </div>
+
+    <div class="center">
+        <div class="category" id="category">
+            MOMENT OF THE YEAR
+        </div>
+
+        <div class="category-line"></div>
+    </div>
+
+    <div class="right">
+
+        <div class="host">
+            <div class="host-name" id="hostName">
+                Jonathan Riehle
+            </div>
+
+            <div class="host-role">
+                HOST
+            </div>
+        </div>
+
+        <div class="live">
+            LIVE
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+/* Dynamic Updates */
+
+function setCategory(name){
+    document.getElementById("category").innerText = name;
+}
+
+function setHost(name){
+    document.getElementById("hostName").innerText = name;
+}
+
+/* Demo Rotation */
+
+const categories = [
+    "MOMENT OF THE YEAR",
+    "BREAKTHROUGH STORYTELLING",
+    "CULTURAL IMPACT AWARD",
+    "AUDIENCE CHOICE",
+    "MOST TALKED ABOUT MOMENT"
+];
+
+let i = 0;
+
+setInterval(() => {
+    i++;
+    setCategory(categories[i % categories.length]);
+}, 8000);
+
+</script>
+
+</body>
+</html>
