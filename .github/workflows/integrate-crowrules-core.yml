@@ -1,0 +1,42 @@
+name: Connect Bonded in Mystery to CrowRules Network
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'crowrules-core.js'
+      - '.github/workflows/integrate-crowrules-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Safely integrate shared CrowRules Core
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('index.html')
+          text=p.read_text(encoding='utf-8')
+          marker='<script src="https://crowrulesentertainment-oss.github.io/crowrulestv/crowrules-core.js"></script>'
+          text=text.replace('\r\n','\n')
+          text=re.sub(r'\s*<script\s+src=["\'](?:\./|https://crowrulesentertainment-oss\.github\.io/crowrulestv/)?crowrules-core\.js["\']\s*></script>\s*','\n',text,flags=re.I)
+          m=re.search(r'</body\s*>',text,re.I)
+          if not m: raise SystemExit('No </body> tag found; no change made.')
+          text=text[:m.start()]+'\n'+marker+'\n'+text[m.start():]
+          p.write_text(text,encoding='utf-8')
+          check=p.read_text(encoding='utf-8')
+          if check.count(marker)!=1: raise SystemExit('Core integration verification failed.')
+          PY
+      - name: Commit integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- index.html; then echo 'Already integrated.'; else git add index.html && git diff --cached --check && git commit -m 'Connect Bonded in Mystery to CrowRules Core' && git push; fi
